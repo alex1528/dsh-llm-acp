@@ -164,6 +164,13 @@ window.__ModuleLoader__.load({
 .acp-tile .path{font:10.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--acp-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acp-tile .note{font-size:11px;color:var(--acp-muted);line-height:1.45}
 .acp-tile .ft{display:flex;justify-content:flex-end;gap:6px;margin-top:auto;padding-top:2px}
+.acp-tile.in{animation:acp-tile-in .34s cubic-bezier(.2,.75,.3,1) backwards}
+@keyframes acp-tile-in{from{opacity:0;transform:translateY(8px) scale(.985)}}
+.acp-skel-tile{pointer-events:none;min-height:118px}
+.acp-skel-tile .acp-skel{animation-delay:var(--d,0ms)}
+.acp-disc-hd .s .acp-spin{display:inline-block;width:11px;height:11px;border-width:1.5px;vertical-align:-1px;margin-right:6px}
+.acp-spin.on-pri{border-color:color-mix(in srgb,#fff 40%,transparent);border-top-color:#fff}
+@media (prefers-reduced-motion:reduce){.acp-tile.in{animation:none}.acp-skel-tile .acp-skel{animation:none}}
 .acp-av.sm{width:30px;height:30px;font-size:13px;border-radius:9px}
 .acp-btn.pri{background:var(--acp-brand);border-color:var(--acp-brand);color:#fff;font-weight:600}.acp-btn.pri:hover:not(:disabled){filter:brightness(1.07)}
 .acp-btn.danger{color:var(--acp-err);border-color:color-mix(in srgb,var(--acp-err) 40%,var(--acp-b2))}
@@ -1086,25 +1093,79 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'acp-btn pri', disabled: saving || (tried && bad), onClick: save }, saving ? '保存中…' : editing ? '保存' : '添加'))))
     }
 
+    // Scan state lives outside the card: switching to another page and back (or opening the
+    // right-sidebar console next to the page) reuses the last scan instead of re-running it.
+    // Only the very first mount scans by itself; after that it is the 「重新扫描」 button, plus a
+    // quiet refresh when a provider is added or removed so the tiles' 已接入 state stays right.
+    const discStore = createStore({ res: null, err: '', loading: false, visible: false, known: null, gen: 0 })
+    let discFlight = null
+    // The one-by-one reveal is time-based (when it started, for which scan generation), so it is
+    // shared by every mounted card, survives StrictMode double effects, and is not replayed on
+    // a later remount once it has finished.
+    let discRevealAt = { gen: -1, t: 0 }
+    const REVEAL_MS = 110
+    const reducedMotion = () => { try { return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false } }
+    function runDiscover({ known, visible }) {
+      if (discFlight) return discFlight // one scan at a time, shared by every card
+      discStore.set({ ...discStore.get(), loading: true, visible, err: '' })
+      discFlight = (async () => {
+        try {
+          const res = await getJson(R.discover)
+          const s = discStore.get()
+          if (visible && !reducedMotion()) discRevealAt = { gen: s.gen + 1, t: Date.now() }
+          discStore.set({ ...s, res, err: '', loading: false, visible: false, known, gen: s.gen + 1 })
+        } catch (e) {
+          discStore.set({ ...discStore.get(), err: String(e?.message ?? e), loading: false, visible: false })
+        } finally { discFlight = null }
+      })()
+      return discFlight
+    }
+    /** Tile-shaped placeholder while scanning, and for tiles not revealed yet. */
+    function SkelTile({ i }) {
+      const bar = (w, ht, r = 5) => h('div', { className: 'acp-skel', style: { height: ht, width: w, borderRadius: r } })
+      return h('div', { className: 'acp-tile acp-skel-tile', 'aria-hidden': true, style: { '--d': `${(i % 5) * 120}ms` } },
+        h('div', { className: 'acp-row', style: { gap: 9, flexWrap: 'nowrap' } },
+          h('div', { className: 'acp-skel', style: { width: 30, height: 30, borderRadius: 9, flex: 'none' } }),
+          h('div', { style: { flex: 1, minWidth: 0, display: 'grid', gap: 6 } }, bar('52%', 11), bar('86%', 9))),
+        h('div', { className: 'acp-row', style: { gap: 6 } }, bar(54, 18, 9), bar(86, 18, 9), bar(58, 18, 9)),
+        bar('72%', 9),
+        h('div', { className: 'ft' }, bar(88, 28, 8)))
+    }
+
     function DiscoverCard({ providers, autoScan, canSave, onEditor }) {
-      const [res, setRes] = useState(null)
-      const [loading, setLoading] = useState(false)
-      const [err, setErr] = useState('')
-      const run = async () => {
-        setLoading(true); setErr('')
-        try { setRes(await getJson(R.discover)) } catch (e) { setErr(String(e?.message ?? e)) } finally { setLoading(false) }
-      }
-      useEffect(() => { if (autoScan && !res && !loading) run() }, [autoScan])
-      // Providers changed (one was added or removed): re-scan so the tiles show it.
+      const st = useStore(discStore)
+      const { res, err, loading } = st
       const known = providers.map((p) => p.id).join(',')
-      const seen = useRef(known)
-      useEffect(() => { if (seen.current !== known) { seen.current = known; if (res) run() } }, [known])
+      useEffect(() => {
+        const s = discStore.get()
+        if (s.loading) return
+        // First time ever: scan once. Later mounts reuse it; providers changed ⇒ quiet refresh.
+        if (!s.res && !s.err) { if (autoScan) runDiscover({ known, visible: true }) }
+        else if (s.res && s.known !== known) runDiscover({ known, visible: false })
+      }, [known])
+      const run = () => runDiscover({ known, visible: true })
       const cands = res?.candidates ?? []
       const fresh = cands.filter((c) => !c.configuredAs).length
+      // One-by-one reveal of a visible scan's tiles; computed in render so no frame shows them all.
+      // `revealing` lasts a little past the last tile so that tile still gets its fade-in class.
+      const [, tick] = useState(0)
+      const since = Date.now() - discRevealAt.t
+      const revealing = discRevealAt.gen === st.gen && since < (cands.length + 4) * REVEAL_MS
+      const shown = revealing ? Math.min(cands.length, Math.floor(since / REVEAL_MS) + 1) : Infinity
+      useEffect(() => {
+        if (!revealing) return undefined
+        const t = setInterval(() => tick((x) => x + 1), REVEAL_MS / 2)
+        return () => clearInterval(t)
+      }, [st.gen, revealing])
+      const skel = loading && (st.visible || !res)
+      const skelN = Math.min(Math.max(cands.length, 3), 10)
+      const anim = revealing
+      const shownTiles = skel ? [] : cands.slice(0, shown)
+      const rest = skel ? 0 : cands.length - shownTiles.length
       const tile = (c) => {
         const on = !!c.configuredAs
         const p = on ? providers.find((x) => x.id === c.configuredAs) : undefined
-        return h('div', { key: c.bin, className: `acp-tile${on ? ' on' : ''}`, style: { '--pc': hueOf(c.bin) } },
+        return h('div', { key: c.bin, className: `acp-tile${on ? ' on' : ''}${anim ? ' in' : ''}`, style: { '--pc': hueOf(c.bin) } },
           h('div', { className: 'acp-row', style: { gap: 9, flexWrap: 'nowrap' } },
             h('div', { className: 'acp-av sm' }, (c.displayName[0] ?? '?').toUpperCase()),
             h('div', { style: { minWidth: 0, flex: 1 } },
@@ -1130,13 +1191,17 @@ window.__ModuleLoader__.load({
               h('rect', { x: 3, y: 4, width: 18, height: 14, rx: 2.5 }), h('path', { d: 'M7 9l3 2.5L7 14' }), h('path', { d: 'M12.5 14H16' }))),
           h('div', { style: { flex: 1, minWidth: 0 } },
             h('div', { className: 't' }, '本机 ACP CLI'),
-            h('div', { className: 's' }, res ? `找到 ${cands.length} 个 · ${fresh} 个可添加 · 搜索了 ${res.dirs.length} 个目录` : '找出已安装的 CLI，按推荐配置一键接入，不用手写 YAML')),
+            h('div', { className: 's', 'aria-live': 'polite' }, skel
+              ? h(Fragment, null, h('span', { className: 'acp-spin', 'aria-hidden': true }), '正在扫描：搜索 PATH 与常用安装目录，读取各 CLI 版本…')
+              : res ? `找到 ${cands.length} 个 · ${fresh} 个可添加 · 搜索了 ${res.dirs.length} 个目录` : '找出已安装的 CLI，按推荐配置一键接入，不用手写 YAML')),
           h('button', { type: 'button', className: 'acp-btn', disabled: !canSave, onClick: () => onEditor({ mode: 'add', id: '', spec: { command: '', args: [] } }) }, '+ 手动添加'),
-          h('button', { type: 'button', className: 'acp-btn pri', disabled: loading, onClick: run }, loading ? '扫描中…' : res ? '重新扫描' : '扫描本机')),
+          h('button', { type: 'button', className: 'acp-btn pri', disabled: loading, onClick: run, style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
+            loading ? h(Fragment, null, h('span', { className: 'acp-spin on-pri', 'aria-hidden': true }), '扫描中…') : res ? '重新扫描' : '扫描本机')),
         err ? h('div', { className: 'acp-probe fail', style: { marginTop: 10 } }, h('b', null, '扫描失败'), h('div', { className: 'msg' }, err)) : null,
-        loading && !res ? h('div', { className: 'acp-disc-grid' }, ...[0, 1, 2].map((i) => h('div', { key: i, className: 'acp-skel', style: { height: 118 } }))) : null,
-        res && cands.length ? h('div', { className: 'acp-disc-grid' }, ...cands.map(tile)) : null,
-        res && !cands.length ? h('div', { className: 'acp-disc-empty' }, '没找到已知的 ACP CLI。装好后点「重新扫描」，或用「手动添加」接入其它 CLI。') : null,
+        skel ? h('div', { className: 'acp-disc-grid', 'aria-busy': 'true', 'data-reveal': 'scanning' }, ...Array.from({ length: skelN }, (_, i) => h(SkelTile, { key: `s${i}`, i }))) : null,
+        !skel && res && cands.length ? h('div', { className: 'acp-disc-grid', 'aria-busy': rest > 0 ? 'true' : 'false', 'data-reveal': rest > 0 ? 'running' : 'done' },
+          ...shownTiles.map(tile), ...Array.from({ length: rest }, (_, i) => h(SkelTile, { key: `r${i}`, i: i + shownTiles.length }))) : null,
+        !skel && res && !cands.length ? h('div', { className: 'acp-disc-empty' }, '没找到已知的 ACP CLI。装好后点「重新扫描」，或用「手动添加」接入其它 CLI。') : null,
         !canSave ? h('div', { className: 'acp-note', style: { color: 'var(--acp-warn)' } }, '当前 profile 不支持在界面里保存配置，只能扫描查看。') : null)
     }
 
