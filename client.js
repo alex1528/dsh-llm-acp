@@ -857,8 +857,9 @@ window.__ModuleLoader__.load({
     ]
     const VIA_OPTS = [['args', '命令行 --model'], ['configOption', 'ACP 切换']]
     const PROVIDER_ID_RE = /^[A-Za-z0-9][\w.-]{0,63}$/
-    const FALLBACK_DEFAULTS = { modelArgs: ['--model', '{model}'], permission: 'allow', modelVia: 'args', startupTimeoutMs: 60000, promptTimeoutMs: 1800000, idleTimeoutMs: 600000, reuseSessions: true, maxSessions: 8, resumeSessions: true, images: true, promptRetries: 1, contextWindow: 200000 }
-    const FORM_KEYS = new Set(['displayName', 'command', 'args', 'permission', 'modelVia', 'modelArgs', 'env', 'startupTimeoutMs', 'promptTimeoutMs', 'idleTimeoutMs', 'maxSessions', 'promptRetries', 'contextWindow', 'reuseSessions', 'resumeSessions', 'images', 'models', 'mode'])
+    const FALLBACK_DEFAULTS = { modelArgs: ['--model', '{model}'], permission: 'allow', modelVia: 'args', startupTimeoutMs: 60000, promptTimeoutMs: 1800000, idleTimeoutMs: 600000, reuseSessions: true, maxSessions: 8, resumeSessions: true, images: true, promptRetries: 1, contextWindow: 200000, modelDiscoveryBackoffMs: 60000, modelDiscoveryMaxBackoffMs: 1800000, rateInName: true, askUser: false }
+    const FORM_KEYS = new Set(['displayName', 'command', 'args', 'permission', 'modelVia', 'modelArgs', 'env', 'startupTimeoutMs', 'promptTimeoutMs', 'idleTimeoutMs', 'maxSessions', 'promptRetries', 'contextWindow', 'reuseSessions', 'resumeSessions', 'images', 'models', 'mode',
+      'effort', 'askUser', 'modelDiscoveryBackoffMs', 'modelDiscoveryMaxBackoffMs', 'rateInName'])
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
     const hueOf = (s) => { let x = 7; for (const ch of String(s)) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return PALETTE[x % PALETTE.length] }
     const splitArgs = (s) => (String(s ?? '').trim() ? String(s).trim().split(/\s+/) : [])
@@ -881,6 +882,10 @@ window.__ModuleLoader__.load({
         contextWindow: String(pick(s.contextWindow, d.contextWindow)),
         reuseSessions: pick(s.reuseSessions, d.reuseSessions), resumeSessions: pick(s.resumeSessions, d.resumeSessions), images: pick(s.images, d.images),
         models: (s.models ?? []).join(', '), mode: s.mode ?? '',
+        effort: typeof s.effort === 'string' ? s.effort : '', askUser: pick(s.askUser, d.askUser) === true,
+        backoffS: String(Math.round(pick(s.modelDiscoveryBackoffMs, d.modelDiscoveryBackoffMs) / 1000)),
+        maxBackoffMin: String(Math.round(pick(s.modelDiscoveryMaxBackoffMs, d.modelDiscoveryMaxBackoffMs) / 60000)),
+        rateInName: pick(s.rateInName, d.rateInName),
         // Keys this form has no field for (approvals, usageCommand, …) survive an edit unchanged.
         extra: Object.fromEntries(Object.entries(s).filter(([k]) => !FORM_KEYS.has(k))),
       }
@@ -923,6 +928,16 @@ window.__ModuleLoader__.load({
       const models = f.models.split(/[,\s]+/).filter(Boolean)
       if (models.length) spec.models = models
       if (f.mode.trim()) spec.mode = f.mode.trim()
+      // Reasoning effort / askUser / discovery backoff / rate suffix: written only when set or non-default.
+      const effort = f.effort.trim()
+      if (effort.length > 64 || /[\u0000-\u001f\u007f]/.test(effort)) errors.effort = '最多 64 个字符，不能有控制字符'
+      else if (effort) spec.effort = effort
+      if (f.askUser && f.permission !== 'allow') spec.askUser = true
+      const backoff = int('backoffS', f.backoffS, 1000, 0, 3600)
+      if (backoff !== undefined && backoff !== d.modelDiscoveryBackoffMs) spec.modelDiscoveryBackoffMs = backoff
+      const maxBackoff = int('maxBackoffMin', f.maxBackoffMin, 60000, 1, 1440)
+      if (maxBackoff !== undefined && maxBackoff !== d.modelDiscoveryMaxBackoffMs) spec.modelDiscoveryMaxBackoffMs = maxBackoff
+      if (f.rateInName !== d.rateInName) spec.rateInName = f.rateInName
       for (const k of Object.keys(spec)) if (spec[k] === undefined) delete spec[k]
       return { spec, errors }
     }
@@ -1021,6 +1036,10 @@ window.__ModuleLoader__.load({
       const name = f.displayName.trim() || f.id.trim() || (f.command.split('/').pop() ?? '')
       const color = hueOf(f.id || f.command || 'x')
       const route = f.id.trim() || '<provider>'
+      // Efforts the CLI reported (learned at discovery); none known ⇒ a free-text id.
+      const efforts = Array.isArray(init.efforts) ? init.efforts.filter((e) => typeof e?.id === 'string' && e.id !== '') : []
+      const effortOpts = [['', 'CLI 默认'], ...efforts.map((e) => [e.id, e.name || e.id]),
+        ...(f.effort.trim() && !efforts.some((e) => e.id === f.effort.trim()) ? [[f.effort.trim(), `${f.effort.trim()}（CLI 未提供）`]] : [])]
       return h('div', { className: 'acp-modal', onClick: onClose },
         h('div', { className: 'acp-modal-box acp-ed', role: 'dialog', 'aria-modal': 'true', 'aria-label': editing ? `编辑 ${name}` : '添加 provider', onClick: (e) => e.stopPropagation() },
           h('div', { className: 'acp-ed-hd' },
@@ -1047,7 +1066,16 @@ window.__ModuleLoader__.load({
             sec('权限', '这个 CLI 能不能改文件、跑命令',
               h('div', { className: 'acp-perm' }, ...PERM_OPTS.map(([v, l, s]) => h('button', {
                 key: v, type: 'button', className: f.permission === v ? 'on' : '', 'aria-pressed': String(f.permission === v), onClick: () => set({ permission: v }),
-              }, h('b', null, l), h('small', null, s))))),
+              }, h('b', null, l), h('small', null, s)))),
+              f.permission !== 'allow' ? h('div', { className: 'acp-tgs' },
+                h(Toggle, { checked: f.askUser, label: '被拒时先问我', sub: '本会拒绝的工具请求先交 DSH 审批，同意一次才放行', onChange: (v) => set({ askUser: v }) })) : null),
+
+            sec('推理强度', '新会话默认用的档位；宿主这一轮选了档位时以宿主为准',
+              h(Field, { label: '默认档位', full: true, error: errors.effort,
+                hint: efforts.length ? 'CLI 报告的档位；选「CLI 默认」= 不切换' : '还没从 CLI 读到档位（检测连接或用一次后会出现）；可手填档位 id，留空 = 不切换' },
+                efforts.length
+                  ? h('div', { className: 'acp-seg full' }, ...effortOpts.map(([v, l]) => h('button', { key: v || '_', type: 'button', className: f.effort.trim() === v ? 'on' : '', onClick: () => set({ effort: v }) }, l)))
+                  : inp('effort', { placeholder: '不指定（用 CLI 默认）', className: 'mono' }))),
 
             sec('环境变量', 'node 脚本类 CLI 需要 PATH 里有 node',
               ...f.env.map(([k, v], i) => h('div', { key: i, className: `acp-env${errors[`env${i}`] ? ' err' : ''}` },
@@ -1074,6 +1102,9 @@ window.__ModuleLoader__.load({
                 h(Field, { label: '上下文窗口', error: errors.contextWindow, hint: '报给宿主的 token 数' }, inp('contextWindow', { inputMode: 'numeric' })),
                 h(Field, { label: '静态模型列表', hint: '留空 = 自动发现；逗号分隔' }, inp('models', { placeholder: 'default', className: 'mono' })),
                 h(Field, { label: 'ACP mode', hint: '会话建好后切换到的 mode，如 plan' }, inp('mode', { placeholder: '不切换', className: 'mono' })),
+                h(Field, { label: '发现失败退避', error: errors.backoffS, hint: '模型发现失败后多久内不再起 CLI，连续失败翻倍；0 = 不退避' }, h(Suffix, { unit: '秒' }, inp('backoffS', { inputMode: 'numeric' }))),
+                h(Field, { label: '退避上限', error: errors.maxBackoffMin, hint: '翻倍到此为止；未登录时直接等这么久' }, h(Suffix, { unit: '分钟' }, inp('maxBackoffMin', { inputMode: 'numeric' }))),
+                h('div', { className: 'acp-fld full' }, h(Toggle, { checked: f.rateInName, label: '名字后显示积分倍率', sub: '如「Hy3 · 0x 免费」；codebuddy / kiro-cli 自动读取', onChange: (v) => set({ rateInName: v }) })),
                 h('div', { className: 'acp-fld full' }, h(Toggle, { checked: f.images, label: '发送图片', sub: 'CLI 支持时把图片作为 ACP 图片块发过去', onChange: (v) => set({ images: v }) }))) : null),
 
             h(ProbeBox, { pr, via: f.modelVia, onAdopt: () => { setViaTouched(true); set({ modelVia: pr.modelVia }) } }),
@@ -1181,7 +1212,7 @@ window.__ModuleLoader__.load({
           c.warning ? h('div', { className: 'note', style: { color: 'var(--acp-warn)' } }, c.warning) : null,
           h('div', { className: 'ft' },
             on
-              ? h('button', { type: 'button', className: 'acp-btn', disabled: !canSave, onClick: () => onEditor({ mode: 'edit', id: c.configuredAs, spec: editSpecOf(p), title: p ? short(p.displayName) : c.displayName }) }, '编辑配置')
+              ? h('button', { type: 'button', className: 'acp-btn', disabled: !canSave, onClick: () => onEditor({ mode: 'edit', id: c.configuredAs, spec: editSpecOf(p), title: p ? short(p.displayName) : c.displayName, efforts: p?.runtime?.efforts }) }, '编辑配置')
               : h('button', { type: 'button', className: 'acp-btn pri', disabled: !canSave, onClick: () => onEditor({ mode: 'add', id: c.id, spec: c.spec, recipeModelVia: c.recipeModelVia, title: c.displayName, note: c.note }) }, '配置并添加')))
       }
       return h('div', { className: 'acp-disc-wrap' },
@@ -2326,7 +2357,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'acp-section' }, 'CLI / ACP 提供方', h('small', null, `${enabled} 个启用 · 「管理模型」里可以开关单个模型`)),
           h('div', { className: 'acp-provs' }, ...providers.map((p) => h(ProviderCard, {
             key: p.id, p, color: colorOf(p.id), usage, days, busy, act,
-            onEdit: canSave && !lockSession ? () => setEditor({ mode: 'edit', id: p.id, spec: editSpecOf(p), title: short(p.displayName) }) : undefined,
+            onEdit: canSave && !lockSession ? () => setEditor({ mode: 'edit', id: p.id, spec: editSpecOf(p), title: short(p.displayName), efforts: p.runtime?.efforts }) : undefined,
             open: open[p.id] === true, setOpen: (v) => setOpenMap((o) => ({ ...o, [p.id]: v })),
           }))),
 
