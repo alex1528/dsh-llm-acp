@@ -26,7 +26,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node test/discover.mjs && node test/quota-probe.mjs && node test/dashboard-async.mjs"
+    "test": "node test/discover.mjs && node test/quota-probe.mjs && node test/dashboard-async.mjs && node test/errors-port.mjs"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
