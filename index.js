@@ -80,6 +80,8 @@ export function apply(ctx, rawConfig) {
     providers: () => providers,
     resolveCwd,
     stateFile,
+    // Last discovered model list per provider (lib/models-store.js); '' ⇒ memory only.
+    modelsFile: sideFile('modelsFile', 'models.cache.json'),
     readImage,
     logger: log,
     prefs,

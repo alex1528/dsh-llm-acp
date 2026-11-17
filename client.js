@@ -1250,6 +1250,7 @@ window.__ModuleLoader__.load({
         h('div', { className: 'acp-info' },
           h('span', null, '进程 ', h('b', null, num(rt.liveChildren)), ' · 暖会话 ', h('b', null, `${num(rt.warmSessions)}/${p.maxSessions}`)),
           h('span', null, '模型发现 ', h('b', null, rt.discovery ? `${rt.discovery.ok ? '成功' : '失败'} ${dur(rt.discovery.ms)}` : '未执行'), rt.discovery ? ` · ${ago(rt.discovery.at)}` : ''),
+          rt.catalogCache ? h('span', { title: rt.catalogCache.disk ? '重启后先用磁盘上的上次结果，过期后在后台刷新' : '内存中的发现结果，过期后先用旧列表、后台刷新' }, '模型列表 ', h('b', null, `${rt.catalogCache.count} 个`), ` · ${rt.catalogCache.disk ? '磁盘缓存' : '缓存'}于 ${ago(rt.catalogCache.at)}`) : null,
           h('span', null, '图片 ', h('b', null, rt.images === true ? '支持' : rt.images === false ? '不支持' : '未知')),
           h('span', { title: last?.message }, '最近一轮 ', last ? h(ResultChip, { r: last }) : h('b', null, '无'), last ? ` ${mName(last.model)} · ${dur(last.ms)} · ${ago(last.at)}` : '')),
         h('details', { className: 'acp-det' },
