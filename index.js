@@ -76,6 +76,21 @@ export function apply(ctx, rawConfig) {
   }
 
   const adapter = createAcpAdapter({
+    // askUser (upstream 0.4.19): DSH's waitable approval service. Only 'allowed-once' lets the CLI go
+    // ahead; no service / no live agent ⇒ 'unavailable' ⇒ refused exactly as before. callId is not
+    // passed: the CLI's toolCallId is not a host tool call id.
+    userApproval: {
+      ask: async ({ sessionId, providerId, title, signal }) => {
+        let approval
+        try { approval = ctx.get('approval') } catch {}
+        if (typeof approval?.request !== 'function') return 'unavailable'
+        let agent
+        try { agent = ctx.get('agents')?.get(sessionId) } catch {}
+        if (agent === undefined) return 'unavailable'
+        const toolName = String(title ?? 'a tool').slice(0, 120)
+        return approval.request({ agent, toolName, reason: `${providerId} 的 CLI 请求使用工具：${toolName}`, signal })
+      },
+    },
     Base: AcpAdapterBase ?? FallbackAdapterBase,
     providers: () => providers,
     resolveCwd,
