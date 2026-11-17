@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "ACP CLI models",
+    "description": "Use local ACP CLI agents (CodeBuddy, DevEco, Qoder, Kiro and others) as model providers. The ACP console in the right sidebar shows each CLI's status, models and token usage, and chooses which models appear in the model picker."
+  }
+}

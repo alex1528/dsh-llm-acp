@@ -1,0 +1,26 @@
+# dsh-llm-acp bundle patch.
+#
+# Starts with NO provider: open ACP 洞察 (or the right-sidebar console) and the "本机 ACP CLI" card
+# scans this machine for installed ACP CLIs; pick one, check the prefilled config, click 添加.
+# The console writes the provider into YOUR profile patch, so no YAML has to be written by hand.
+#
+# Every key under `providers` becomes one LLM provider route served by the same adapter.
+# Use it in a role chain as `<provider>/<model>`, e.g. `kiro/gpt-5.6-terra`, or `kiro/default`
+# to let the CLI pick its own configured model.
+#
+# Writing it by hand instead (in your profile's cordis.patch.yml; `config` there replaces this
+# default wholesale, so list every provider you want):
+#   - id: llm-acp
+#     config:
+#       providers:
+#         kiro:
+#           displayName: Kiro
+#           command: /Users/you/.local/bin/kiro-cli   # absolute path: a Dock-launched DSH may not see ~/.local/bin
+#           args: [acp]
+#           modelVia: configOption
+#           permission: allow                          # default; `read` / `reject` keep it read-only
+- insert:
+    - id: llm-acp
+      name: dsh-llm-acp
+      config:
+        providers: {}

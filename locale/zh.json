@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "ACP CLI 模型",
+    "description": "把本机的 ACP CLI 代理（CodeBuddy、DevEco、Qoder、Kiro 等）作为模型提供方使用。右侧栏「ACP 控制台」可查看每个 CLI 的状态、模型与 Token 用量，并控制哪些模型出现在模型列表里。"
+  }
+}

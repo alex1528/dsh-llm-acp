@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# packed tarballs (npm pack)
+*.tgz
+
+# python (scripts/screenshots/shoot.py)
+__pycache__/
+*.pyc
+.venv/
+
+# logs and local env
+*.log
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
