@@ -18,12 +18,17 @@
 
 ### 一、从本地目录装（最快，适合自己两台机器之间搬）
 
-把这个目录整个拷过去（**不含** `node_modules`），然后：
+把这个目录整个拷过去（或 `git clone`，**不含** `node_modules`），**先在插件目录里装依赖**，再 link：
 
 ```bash
+cd /绝对路径/dsh-llm-acp
+pnpm install --prod                     # 或 npm install --omit=dev；装上 @agentclientprotocol/sdk 和 zod
+
 cd ~/.dsh/profiles/<profile>
 pnpm add link:/绝对路径/dsh-llm-acp     # 路径必须是绝对路径
 ```
+
+> `link:` 不会替插件装依赖。插件目录里没有 `node_modules` 时，服务端一加载就报 `ERR_MODULE_NOT_FOUND: @agentclientprotocol/sdk`，整个插件起不来，ACP 洞察、右侧栏控制台和 `/acp` 都不会出现。
 
 再把 `dsh-llm-acp` 加进同目录 `package.json` 的 `dsh.profile.bundles`，重启 DSH。
 
@@ -31,7 +36,7 @@ pnpm add link:/绝对路径/dsh-llm-acp     # 路径必须是绝对路径
 
 ```bash
 # 发起方
-npm pack                       # 产出 dsh-llm-acp-<版本>.tgz，约 44 KB，只含 index.js + lib/ + patch + README
+npm pack                       # 产出 dsh-llm-acp-<版本>.tgz，约 130 KB：index.js、client.js、lib/、locale/、icon、patch、README、LICENSE
 
 # 接收方
 cd ~/.dsh/profiles/<profile>
@@ -48,7 +53,7 @@ tgz 里**不含 `node_modules`**，`@agentclientprotocol/sdk` 和 `zod` 是插�
 
 1. 如果包名 `dsh-llm-acp` 在目标 registry 上被占用，改成带 scope 的（如 `@yourscope/dsh-llm-acp`）。
 2. 删掉 `"private": true`。
-3. 确认 `files[]` 已经覆盖运行时要用的文件——现有列表就是对的，`npm pack` 打出来 14 个文件。
+3. 确认 `files[]` 已经覆盖运行时要用的文件——现有列表就是对的，`npm pack` 打出来 24 个文件。
 
 然后 `npm publish`，接收方 `pnpm add dsh-llm-acp` 即可。
 
@@ -73,7 +78,15 @@ tgz 里**不含 `node_modules`**，`@agentclientprotocol/sdk` 和 `zod` 是插�
 ### 版本门槛
 
 - `engines.node >= 22`
-- `@deepseek-ai/dsh-llm` peer 范围是 `>=0.2.1-rc.2 <0.2.2`。对方的 DSH 版本不在这段里时，装上去可能起不来——**先在对方机器上跑 `npm test` 确认离线测试全绿**，它不需要任何 CLI，也不需要 token。
+- peer 范围：`@deepseek-ai/cordis >=4.0.5 <4.2.0`、`@deepseek-ai/dsh-llm >=0.2.1-rc.2 <0.2.2-0 || >=0.2.2-0 <0.3.0-0`（已在 DSH 0.2.2-rc.3 上验证：cordis 4.1.0、dsh-llm 0.2.2-rc.3）。宿主版本不在范围里时，插件管理器会拦下安装/激活，整个插件不启动。**先在对方机器上跑 `npm test` 确认离线测试全绿**，它不需要任何 CLI，也不需要 token。
+
+### 装上了但「ACP 洞察」不见了
+
+按顺序查：
+
+1. **插件有没有激活**：设置 → 插件里看 `dsh-llm-acp` 是否启用、有没有报版本不满足。宿主的 `@deepseek-ai/cordis` / `@deepseek-ai/dsh-llm` 版本超出上面的 peer 范围时会被拦下。
+2. **依赖装了没有**：用 `link:` 装的，插件目录里必须有 `node_modules/@agentclientprotocol/sdk`。没有就在插件目录跑 `pnpm install --prod`，再重启 DSH。
+3. **入口开关**：右侧栏「ACP 控制台」顶部的「入口 · 侧边栏洞察页」勾选框，去掉后左侧就没有「ACP 洞察」。这个开关存在浏览器本地，每台机器各自一份，默认是开。
 
 ### 对方自检
 
