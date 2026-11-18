@@ -20,7 +20,17 @@ from playwright.sync_api import sync_playwright
 ROOT = dirname(dirname(dirname(abspath(__file__))))
 DOCS = join(ROOT, 'docs')
 NODE = os.environ.get('NODE', 'node')
-READY = "() => document.body.innerText.includes('更新于') && /找到 \\d+ 个/.test(document.body.innerText)"
+# Dashboard loaded and the quiet background scan finished (the 配置 CLI tag shows its count).
+READY = "() => document.body.innerText.includes('更新于') && !!document.querySelector('.acp-cfg .n')"
+SCANNED = "() => /找到 \\d+ 个/.test(document.body.innerText)"
+
+
+def open_disc(pg):
+    """Unfold the scan card through the 配置 CLI tag and wait for its tiles."""
+    pg.locator('.acp-cfg').first.click()
+    pg.mouse.move(2, 2)  # no hover highlight on whatever tile scrolls under the pointer
+    pg.wait_for_function(SCANNED, timeout=120000)
+    pg.wait_for_timeout(1500)
 
 
 def get(url, timeout=120):
@@ -58,10 +68,16 @@ try:
             pg.goto(f'{base}/?{query}')
             return ctx, pg
 
-        # 1 + 4: insights page (full height) and its scan card
+        # 6, 1 + 4: the 配置 CLI tag with its guide dot, then the page with the scan card unfolded
         ctx, pg = open_page(1440, 900, 1.5, 'view=page')
         pg.wait_for_function(READY, timeout=120000)
         pg.wait_for_timeout(1200)
+        # The hint bubble hangs below the hero card: clip a little past its bottom edge.
+        pg.wait_for_selector('.acp-coach', timeout=30000)
+        pg.wait_for_timeout(1300)
+        box = pg.locator('.acp-hero').bounding_box()
+        pg.screenshot(path=join(DOCS, 'shot-06-config-tag.png'), clip={'x': box['x'], 'y': box['y'], 'width': box['width'], 'height': box['height'] + 80})
+        open_disc(pg)
         pg.screenshot(path=join(DOCS, 'shot-01-insights-page.png'), full_page=True, animations='disabled')
         pg.locator('.acp-disc-wrap').screenshot(path=join(DOCS, 'shot-04-discover.png'), animations='disabled')
         ctx.close()
@@ -87,6 +103,7 @@ try:
         # 5: provider editor, prefilled from the scan, after a connection check
         ctx, pg = open_page(1280, 1500, 2, 'view=page&full=0')
         pg.wait_for_function(READY, timeout=120000)
+        open_disc(pg)
         tile = pg.locator('.acp-tile:not(.on)').filter(has_text=re.compile('opencode', re.I))
         if tile.count() == 0:
             tile = pg.locator('.acp-tile:not(.on)')

@@ -18,7 +18,7 @@ window.__ModuleLoader__.load({
     const R = {
       dashboard: 'api/llm-acp.dashboard', models: 'api/llm-acp.models', provider: 'api/llm-acp.provider',
       refresh: 'api/llm-acp.refresh', csv: 'api/llm-acp.csv',
-      discover: 'api/llm-acp.discover', probe: 'api/llm-acp.probe', add: 'api/llm-acp.add', remove: 'api/llm-acp.remove',
+      discover: 'api/llm-acp.discover', probe: 'api/llm-acp.probe', add: 'api/llm-acp.add', remove: 'api/llm-acp.remove', tps: 'api/llm-acp.tps',
     }
     const zh = { title: 'ACP 控制台', description: '查看已接入的 ACP CLI、运行状态、模型与 Token 用量报表，并控制哪些模型出现在模型列表里', open: '打开 ACP 控制台' }
     const en = { title: 'ACP console', description: 'Connected ACP CLIs, live status, models and token usage reports; choose which models appear in the model picker', open: 'Open ACP console' }
@@ -51,8 +51,8 @@ window.__ModuleLoader__.load({
 --acp-ok:var(--dsw-alias-state-success-primary,#16a34a);--acp-warn:var(--dsw-alias-state-warn-primary,#d97706);--acp-err:var(--dsw-alias-state-error-primary,#dc2626);--acp-brand:var(--dsw-alias-state-business-primary,#4f46e5);
 --acp-in:${C_IN};--acp-out:${C_OUT};--acp-time:${C_TIME};--acp-shadow:0 1px 2px rgba(15,23,42,.04),0 8px 22px -12px rgba(15,23,42,.14)}
 .acp *{box-sizing:border-box}
-.acp-hero{position:relative;overflow:hidden;border:1px solid var(--acp-b2);border-radius:14px;padding:14px 16px 12px;margin-bottom:12px;box-shadow:var(--acp-shadow);background:linear-gradient(118deg,color-mix(in srgb,var(--acp-in) 11%,transparent),transparent 48%,color-mix(in srgb,var(--acp-out) 10%,transparent)),var(--acp-card)}
-.acp-hero:after{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:linear-gradient(90deg,var(--acp-in),var(--acp-out),transparent 92%)}
+.acp-hero{position:relative;border:1px solid var(--acp-b2);border-radius:14px;padding:14px 16px 12px;margin-bottom:12px;box-shadow:var(--acp-shadow);background:linear-gradient(118deg,color-mix(in srgb,var(--acp-in) 11%,transparent),transparent 48%,color-mix(in srgb,var(--acp-out) 10%,transparent)),var(--acp-card)}
+.acp-hero:after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(90deg,var(--acp-in),var(--acp-out),transparent 92%) top/100% 2px no-repeat}
 .acp-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .acp-logo{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:#fff;flex:none;background:linear-gradient(135deg,var(--acp-in),var(--acp-out));box-shadow:0 4px 12px -4px color-mix(in srgb,var(--acp-in) 60%,transparent)}
 .acp-h1{font-size:15px;font-weight:700;line-height:1.3}
@@ -65,6 +65,37 @@ window.__ModuleLoader__.load({
 .acp-btn{font:inherit;font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid var(--acp-b2);background:var(--acp-card);color:inherit;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 .acp-btn:hover{background:var(--acp-sub)}.acp-btn:disabled{opacity:.5;cursor:default}
 .acp-btn.on{border-color:color-mix(in srgb,var(--acp-brand) 55%,transparent);color:var(--acp-brand);background:color-mix(in srgb,var(--acp-brand) 7%,var(--acp-card))}
+.acp-cfg{position:relative}.acp-cfg svg{flex:none}
+@property --acp-a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.acp-cfg-wrap{position:relative;display:inline-flex}
+.acp-cfg.guide{overflow:hidden;color:#fff;font-weight:600;border:1.5px solid transparent;background:linear-gradient(135deg,var(--acp-brand),color-mix(in srgb,var(--acp-brand) 60%,#a855f7)) padding-box,conic-gradient(from var(--acp-a),#22d3ee,#a855f7,#f472b6,var(--acp-brand),#22d3ee) border-box;animation:acp-cfg-spin 3s linear infinite,acp-breathe 2.2s ease-in-out infinite}
+.acp-cfg.guide:hover{filter:brightness(1.08)}
+.acp-cfg.guide::before{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-18deg);animation:acp-shine 3.2s ease-in-out infinite}
+.acp-cfg.guide svg{animation:acp-wiggle 2.8s ease-in-out infinite;transform-origin:50% 50%}
+.acp-cfg.guide .n{background:#fff;color:var(--acp-brand)}
+@keyframes acp-cfg-spin{to{--acp-a:360deg}}
+@keyframes acp-breathe{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acp-brand) 45%,transparent),0 4px 12px -4px color-mix(in srgb,var(--acp-brand) 55%,transparent)}50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--acp-brand) 0%,transparent),0 6px 18px -4px color-mix(in srgb,var(--acp-brand) 80%,transparent)}}
+@keyframes acp-shine{0%{left:-60%}55%,100%{left:130%}}
+.acp-coach{position:absolute;top:calc(100% + 11px);left:-6px;z-index:40;display:flex;align-items:stretch;gap:2px;width:max-content;max-width:min(300px,80vw);padding:3px;border-radius:12px;color:#fff;background:linear-gradient(135deg,var(--acp-brand),color-mix(in srgb,var(--acp-brand) 55%,#a855f7));box-shadow:0 14px 30px -12px color-mix(in srgb,var(--acp-brand) 75%,transparent),0 2px 6px rgba(0,0,0,.14);animation:acp-coach-in .5s cubic-bezier(.2,.9,.3,1.35) both,acp-bob 2.4s ease-in-out .5s infinite}
+.acp-coach::before{content:"";position:absolute;top:-5px;left:24px;width:12px;height:12px;border-radius:2px;background:var(--acp-brand);transform:rotate(45deg);z-index:-1}
+.acp-coach .body{display:flex;align-items:center;gap:9px;padding:6px 8px 6px 9px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:9px}
+.acp-coach .body:hover{background:rgba(255,255,255,.14)}
+.acp-coach .body b{display:block;font-size:12.5px;font-weight:700;white-space:nowrap}
+.acp-coach .body small{display:block;font-size:11px;opacity:.88;white-space:nowrap;margin-top:1px}
+.acp-coach .spark{font-size:16px;line-height:1;display:inline-block;animation:acp-twinkle 1.6s ease-in-out infinite}
+.acp-coach .x{border:0;background:none;color:inherit;opacity:.75;font-size:17px;line-height:1;padding:0 8px;cursor:pointer;border-radius:8px}
+.acp-coach .x:hover{opacity:1;background:rgba(255,255,255,.14)}
+@keyframes acp-coach-in{from{opacity:0;transform:translateY(8px) scale(.94)}}
+@keyframes acp-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes acp-twinkle{0%,100%{transform:scale(1) rotate(0);opacity:1}50%{transform:scale(1.3) rotate(25deg);opacity:.7}}
+.acp-cfg .n{min-width:16px;height:16px;padding:0 5px;border-radius:8px;background:var(--acp-brand);color:#fff;font-size:10.5px;font-weight:700;line-height:16px;text-align:center;box-sizing:border-box}
+.acp-guide{position:absolute;top:-4px;right:-4px;width:9px;height:9px;pointer-events:none}
+.acp-guide::before,.acp-guide::after{content:"";position:absolute;inset:0;border-radius:50%;background:var(--acp-brand)}
+.acp-guide::before{animation:acp-ping 1.6s cubic-bezier(0,0,.2,1) infinite}
+.acp-guide::after{box-shadow:0 0 0 2px var(--acp-card)}
+@keyframes acp-ping{75%,100%{transform:scale(2.8);opacity:0}}
+@keyframes acp-wiggle{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-14deg)}90%{transform:rotate(12deg)}95%{transform:rotate(-6deg)}}
+@media (prefers-reduced-motion:reduce){.acp-guide::before,.acp-cfg.guide,.acp-cfg.guide::before,.acp-cfg.guide svg,.acp-coach,.acp-coach .spark{animation:none}.acp-cfg.guide::before{display:none}}
 .acp-live{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:2px 9px;border-radius:999px;color:var(--acp-warn);background:color-mix(in srgb,var(--acp-warn) 10%,var(--acp-card));border:1px solid color-mix(in srgb,var(--acp-warn) 30%,transparent)}
 .acp-live i{width:7px;height:7px;border-radius:50%;background:currentColor;animation:acp-pulse 1.4s ease-in-out infinite}
 .acp-alert{border:1px solid color-mix(in srgb,var(--acp-err) 45%,transparent);background:color-mix(in srgb,var(--acp-err) 6%,var(--acp-card));color:var(--acp-err);border-radius:10px;padding:8px 12px;margin-bottom:10px}
@@ -90,6 +121,27 @@ window.__ModuleLoader__.load({
 .acp-tt{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .acp-tt-l{font-size:11px;color:var(--acp-muted);white-space:nowrap}
 .acp-legend.wrap{flex-wrap:wrap;gap:6px 12px;margin:10px 0 0;align-items:center}
+.acp-tps svg{display:block;width:100%;height:auto;overflow:visible}
+.acp-tps .ax{font-size:9.5px;fill:var(--acp-faint)}
+.acp-tps .gl{stroke:var(--acp-b1);stroke-dasharray:3 3}
+.acp-tps circle{cursor:default}
+.acp-lg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.acp-lg button{display:inline-flex;align-items:center;gap:5px;font:inherit;font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid var(--acp-b2);background:var(--acp-card);color:inherit;cursor:pointer;max-width:100%}
+.acp-lg button i{width:8px;height:8px;border-radius:50%;flex:none}
+.acp-lg button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acp-lg button b{font-variant-numeric:tabular-nums;font-weight:650}
+.acp-lg button.off{opacity:.45}.acp-lg button.off span{text-decoration:line-through}
+.acp-lg button:disabled{cursor:default;opacity:.4}
+.acp-drow{display:grid;grid-template-columns:70px minmax(0,1fr) 62px;gap:8px;align-items:center;font-size:11.5px;margin:7px 0;color:var(--acp-muted)}
+.acp-drow b{color:var(--acp-fg);text-align:right;font-variant-numeric:tabular-nums;font-weight:650}.acp-drow b small{color:var(--acp-faint);font-weight:400;margin-left:3px}
+.acp-hbar{height:10px;border-radius:5px;background:var(--acp-sub);overflow:hidden}
+.acp-hbar .fill{display:flex;height:100%;border-radius:5px;overflow:hidden;transform-origin:left;animation:acp-grow .5s ease-out}
+.acp-hbar .fill i{display:block;height:100%;min-width:2px}
+.acp-grow{display:flex;align-items:flex-end;gap:4px;height:60px;margin-top:6px}
+.acp-grow .c{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-width:0}
+.acp-grow .c i{display:block;border-radius:3px 3px 0 0;background:color-mix(in srgb,var(--acp-in) 70%,transparent);min-height:2px;transform-origin:bottom;animation:acp-bar .5s ease-out}
+.acp-grow-ax{display:flex;gap:4px;font-size:9.5px;color:var(--acp-faint);margin-top:3px}.acp-grow-ax span{flex:1;text-align:center}
+.acp-chips-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .acp-lg{display:inline-flex;align-items:center;font:inherit;font-size:11px;color:var(--acp-fg);background:transparent;border:0;cursor:pointer;padding:2px 4px;border-radius:6px;line-height:1.3}
 .acp-lg:hover{background:var(--acp-sub)}
 .acp-lg.off{opacity:.42;text-decoration:line-through}
@@ -1163,7 +1215,7 @@ window.__ModuleLoader__.load({
         h('div', { className: 'ft' }, bar(88, 28, 8)))
     }
 
-    function DiscoverCard({ providers, autoScan, canSave, onEditor }) {
+    function DiscoverCard({ providers, autoScan, canSave, onEditor, onClose }) {
       const st = useStore(discStore)
       const { res, err, loading } = st
       const known = providers.map((p) => p.id).join(',')
@@ -1225,6 +1277,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 's', 'aria-live': 'polite' }, skel
               ? h(Fragment, null, h('span', { className: 'acp-spin', 'aria-hidden': true }), '正在扫描：搜索 PATH 与常用安装目录，读取各 CLI 版本…')
               : res ? `找到 ${cands.length} 个 · ${fresh} 个可添加 · 搜索了 ${res.dirs.length} 个目录` : '找出已安装的 CLI，按推荐配置一键接入，不用手写 YAML')),
+          onClose ? h('button', { type: 'button', className: 'acp-btn', onClick: onClose, title: '收起；之后点顶部「配置 CLI」再打开' }, '收起') : null,
           h('button', { type: 'button', className: 'acp-btn', disabled: !canSave, onClick: () => onEditor({ mode: 'add', id: '', spec: { command: '', args: [] } }) }, '+ 手动添加'),
           h('button', { type: 'button', className: 'acp-btn pri', disabled: loading, onClick: run, style: { display: 'inline-flex', alignItems: 'center', gap: 6 } },
             loading ? h(Fragment, null, h('span', { className: 'acp-spin on-pri', 'aria-hidden': true }), '扫描中…') : res ? '重新扫描' : '扫描本机')),
@@ -1950,6 +2003,147 @@ window.__ModuleLoader__.load({
           : h(Empty, { text: '所选范围内还没有调用记录' }))
     }
 
+    // ── per-model TPS trend (/api/llm-acp.tps), duration buckets, projects, session depth ──
+    const TPS_WINS = [['day', '天'], ['week', '周'], ['month', '月']]
+    const TPS_MODES = [['turn', '整轮'], ['gen', '生成']]
+    const rateFmt = (x) => (num(x) >= 100 ? n0(Math.round(num(x))) : num(x).toFixed(1))
+    /** Merge the host's 5-minute points into `step` buckets from their sums (exact, not averaged). */
+    function mergeTps(points, step, gen) {
+      const by = new Map()
+      for (const p of points ?? []) {
+        const t = Math.floor(num(p.t) / step) * step
+        let b = by.get(t)
+        if (!b) by.set(t, (b = { t, out: 0, ms: 0, genOut: 0, genMs: 0, turns: 0, estimated: 0 }))
+        b.out += num(p.out); b.ms += num(p.ms); b.genOut += num(p.genOut); b.genMs += num(p.genMs); b.turns += num(p.turns); b.estimated += num(p.estimated)
+      }
+      return [...by.values()].sort((a, b) => a.t - b.t)
+        .map((b) => ({ ...b, v: gen ? (b.genMs > 0 ? b.genOut / (b.genMs / 1000) : null) : (b.ms > 0 ? b.out / (b.ms / 1000) : null) }))
+        .filter((b) => b.v !== null)
+    }
+    function TpsCard({ query, reloadKey, ttft, modelOf = rawModelOf, card }) {
+      const [win, setWin] = useState('day')
+      // Until the user picks a window, widen 天 → 周 → 月 when the narrower one has no data.
+      const [autoWin, setAutoWin] = useState(true)
+      const pickWin = (v) => { setAutoWin(false); setWin(v) }
+      const [mode, setMode] = useState('turn')
+      const [hidden, setHidden] = useState({})
+      const [res, setRes] = useState(null)
+      const [err, setErr] = useState('')
+      useEffect(() => {
+        let off = false
+        getJson(`${R.tps}?window=${win}${query ? `&${query}` : ''}`).then((j) => {
+          if (off) return
+          if (autoWin && !(j.models ?? []).length && win !== 'month') { setWin(win === 'day' ? 'week' : 'month'); return }
+          setRes(j); setErr('')
+        }, (e) => { if (!off) setErr(String(e?.message ?? e)) })
+        return () => { off = true }
+      }, [win, query, reloadKey])
+      // Month: 8640 five-minute buckets would be unreadable; merged into hours for drawing.
+      const step = win === 'month' ? 3_600_000 : num(res?.step) || 300_000
+      const genOk = (res?.models ?? []).some((m) => m.genTps !== undefined)
+      const gen = mode === 'gen' && genOk
+      const series = (res?.models ?? []).slice(0, 8).map((m, i) => ({ ...m, color: PALETTE[i % PALETTE.length], pts: mergeTps(m.points, step, gen) }))
+      const vis = series.filter((s) => !hidden[s.key] && s.pts.length)
+      const since = num(res?.since)
+      const until = num(res?.until)
+      const W = 640, H = 190, PL = 38, PR = 10, PT = 10, PB = 22
+      const max = Math.max(1, ...vis.flatMap((s) => s.pts.map((p) => p.v))) * 1.1
+      const X = (t) => PL + ((t + step / 2 - since) / Math.max(1, until - since)) * (W - PL - PR)
+      const Y = (v) => PT + (1 - v / max) * (H - PT - PB)
+      const tickFmt = (t) => { const d = new Date(t); return win === 'day' ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : `${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
+      const ticks = until > since ? [0, 0.25, 0.5, 0.75, 1].map((f) => since + f * (until - since)) : []
+      const pathOf = (pts) => pts.map((p, i) => `${i === 0 || p.t - pts[i - 1].t > step * 1.5 ? 'M' : 'L'}${X(p.t).toFixed(1)},${Y(p.v).toFixed(1)}`).join('')
+      const turns = vis.reduce((a, s) => a + s.pts.reduce((b, p) => b + p.turns, 0), 0)
+      const any = series.some((s) => s.pts.length)
+      const seg = (opts, cur, set, label, disabledOf) => h('div', { className: 'acp-seg mini', role: 'tablist', 'aria-label': label },
+        ...opts.map(([v, text]) => {
+          const dis = disabledOf ? disabledOf(v) : false
+          return h('button', { key: v, type: 'button', role: 'tab', 'aria-selected': String(cur === v), className: cur === v ? 'on' : '', disabled: dis, title: dis ? '还没有记录首字时间的轮次（新调用才有）' : undefined, onClick: () => set(v) }, text)
+        }))
+      const right = h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', flexWrap: 'wrap' } },
+        seg(TPS_MODES, gen ? 'gen' : 'turn', setMode, 'TPS 口径', (v) => v === 'gen' && !genOk),
+        seg(TPS_WINS, win, pickWin, 'TPS 时间窗'))
+      const winText = win === 'day' ? '最近一天' : win === 'week' ? '最近一周' : '最近一个月'
+      return h(Card, { className: 's8', title: '模型 TPS 趋势', right, ...card },
+        err ? h('div', { className: 'acp-note', style: { color: 'var(--acp-err)' } }, /404/.test(err) ? '宿主还是旧版本：重启一次 DSH 后可用' : err) : null,
+        !res && !err ? h('div', { className: 'acp-skel', style: { height: 190 } }) : null,
+        res && !any ? h(Empty, { text: `${winText}没有成功且有输出的轮次` }) : null,
+        res && any ? h('div', { className: 'acp-tps' },
+          h('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `模型 TPS 趋势 · ${winText}` },
+            ...[0, 0.5, 1].map((f) => h('g', { key: `y${f}` },
+              h('line', { className: 'gl', x1: PL, x2: W - PR, y1: Y(max * f), y2: Y(max * f) }),
+              h('text', { className: 'ax', x: PL - 5, y: Y(max * f) + 3, textAnchor: 'end' }, rateFmt(max * f)))),
+            ...ticks.map((t, i) => h('text', { key: `x${i}`, className: 'ax', x: PL + (i / 4) * (W - PL - PR), y: H - 6, textAnchor: i === 0 ? 'start' : i === 4 ? 'end' : 'middle' }, tickFmt(t))),
+            ...vis.map((s) => h('g', { key: s.key },
+              h('path', { d: pathOf(s.pts), fill: 'none', stroke: s.color, strokeWidth: 1.8, strokeLinejoin: 'round', strokeLinecap: 'round' }),
+              ...s.pts.map((p) => h('circle', { key: p.t, cx: X(p.t), cy: Y(p.v), r: s.pts.length > 60 ? 1.8 : 2.8, fill: p.estimated ? 'var(--acp-card)' : s.color, stroke: s.color, strokeWidth: 1.2 },
+                h('title', null, `${modelOf(s.provider, s.model)} · ${fmtTime(p.t).slice(0, 11)}${win === 'month' ? ' 起 1 小时' : ''} · ${rateFmt(p.v)} t/s · ${p.turns} 轮${p.estimated ? ` · 其中 ${p.estimated} 轮按字符估算` : ''}`)))))),
+          h('div', { className: 'acp-lg' }, ...series.map((s) => {
+            const avg = gen ? s.genTps : s.tps
+            return h('button', { key: s.key, type: 'button', className: hidden[s.key] ? 'off' : '', disabled: !s.pts.length, 'aria-pressed': String(!hidden[s.key]), title: `${s.key} · ${s.turns} 轮${s.ttft ? ` · 首字 P50 ${dur(s.ttft.p50)}` : ''} · 点击显示 / 隐藏`, onClick: () => setHidden((x) => ({ ...x, [s.key]: !x[s.key] })) },
+              h('i', { style: { background: s.color } }), h('span', null, modelOf(s.provider, s.model)), avg !== undefined ? h('b', null, `${rateFmt(avg)} t/s`) : null)
+          }))) : null,
+        res ? h('div', { className: 'acp-note' },
+          `${win === 'month' ? '按 1 小时合并' : '5 分钟一格'} · 共 ${n0(turns)} 轮 · `,
+          gen ? '生成 TPS = 输出 Token ÷（耗时 − 首字时间），只统计记录了首字时间的轮次' : '整轮 TPS = 输出 Token ÷ 整轮耗时，含 CLI 跑工具的时间，比纯生成速度低',
+          ` · 首字时间${num(ttft?.count) ? ` P50 ${dur(ttft.p50)} · P90 ${dur(ttft.p90)}（${n0(ttft.count)} 轮）` : '：新调用的轮次才会记录'}`,
+          ' · 空心点含估算 Token') : null)
+    }
+
+    function DurationCard({ usage, colorOf, nameOf, card }) {
+      const bins = usage?.durations ?? []
+      const total = bins.reduce((a, b) => a + num(b.count), 0)
+      const max = Math.max(1, ...bins.map((b) => num(b.count)))
+      const top = bins.reduce((a, b) => (num(b.count) > num(a?.count) ? b : a), undefined)
+      const provs = [...new Set(bins.flatMap((b) => Object.keys(b.models ?? {}).map(providerOfKey)))]
+      return h(Card, { className: 's4', title: '耗时分布', sub: '成功轮次 · 按提供方着色', ...card },
+        total ? h(Fragment, null,
+          ...bins.map((b) => h('div', { key: b.label, className: 'acp-drow' },
+            h('span', null, b.label),
+            h('div', { className: 'acp-hbar' }, num(b.count) ? h('div', { className: 'fill', style: { width: `${(num(b.count) / max) * 100}%` } },
+              ...Object.entries(b.models ?? {}).map(([k, c]) => h('i', { key: k, title: `${k} · ${c} 轮`, style: { flex: c, background: colorOf(providerOfKey(k)) } }))) : null),
+            h('b', null, n0(b.count), h('small', null, pct(b.count, total))))),
+          provs.length ? h('div', { className: 'acp-legend wrap' }, ...provs.map((pid) => h('span', { key: pid }, h('i', { style: { background: colorOf(pid) } }), nameOf(pid)))) : null,
+          h('div', { className: 'acp-note' }, `最常见 ${top?.label ?? '-'}（${pct(top?.count, total)}）· P50 ${dur(usage?.latency?.p50)} · P90 ${dur(usage?.latency?.p90)}`))
+          : h(Empty, { text: usage?.durations ? '所选范围内还没有成功的轮次' : '宿主还是旧版本：重启一次 DSH 后可用' }))
+    }
+
+    const baseOf = (p) => { const s = String(p ?? '').replace(/\/+$/, ''); return s ? s.split('/').pop() || s : '' }
+    function ProjectCard({ usage, card }) {
+      const rows = usage?.byProject ?? []
+      const max = Math.max(1, ...rows.map(tokOf))
+      return h(Card, { className: 's4', title: '项目排行', sub: `按 Token · ${n0(usage?.projectCount ?? rows.length)} 个目录`, ...card },
+        rows.length ? h(Fragment, null,
+          h('div', { className: 'acp-mini-list' }, ...rows.slice(0, 8).map((p, i) => h('div', { key: p.cwd || `-${i}`, className: 'r', title: `${p.cwd || '未记录工作目录'}\n${n0(p.turns)} 轮 · ${n0(p.sessions)} 个会话 · ${n0(tokOf(p))} Token` },
+            h('span', { style: { width: 14, flex: 'none', color: 'var(--acp-faint)', fontVariantNumeric: 'tabular-nums' } }, i + 1),
+            h('span', { className: 'nm', style: { color: 'var(--acp-fg)' } }, baseOf(p.cwd) || '（未记录目录）'),
+            h('small', { style: { flex: 'none', color: 'var(--acp-faint)' } }, `${n0(p.sessions)} 会话 · ${n0(p.turns)} 轮`),
+            h('span', { className: 'bar' }, h('i', { style: { width: `${(tokOf(p) / max) * 100}%`, background: 'var(--acp-in)' } })),
+            h('b', null, compact(tokOf(p)))))),
+          h('div', { className: 'acp-note' }, '目录 = 会话的工作目录，悬停看完整路径。'))
+          : h(Empty, { text: usage?.byProject ? '所选范围内还没有调用记录' : '宿主还是旧版本：重启一次 DSH 后可用' }))
+    }
+
+    function DepthCard({ usage, card }) {
+      const d = usage?.depth
+      const grow = (d?.byIndex ?? []).filter((b) => b.count > 0)
+      const gmax = Math.max(1, ...grow.map((b) => b.avgIn))
+      return h(Card, { className: 's4', title: '会话深度', sub: `${n0(d?.sessions)} 个会话`, ...card },
+        d && d.sessions ? h(Fragment, null,
+          h('div', { className: 'acp-big' }, h('span', { className: 'v' }, d.avgTurns.toFixed(1)), h('span', { className: 'u' }, `轮 / 会话 · 最长 ${n0(d.maxTurns)} 轮`)),
+          h('div', { className: 'acp-kv2' },
+            h('div', null, h('div', { className: 'l' }, '单轮输入'), h('div', { className: 'v' }, compact(d.avgIn))),
+            h('div', null, h('div', { className: 'l' }, '单轮输出 · 输入:输出'), h('div', { className: 'v' }, compact(d.avgOut), h('small', { style: { color: 'var(--acp-muted)', fontWeight: 400, marginLeft: 6 } }, d.ratio > 0 ? `${d.ratio.toFixed(1)} : 1` : '-')))),
+          h('div', { className: 'acp-chips-row' }, ...d.dist.map((b) => h(Chip, { key: b.label }, `${b.label} ${n0(b.count)}`))),
+          grow.length > 1 ? h(Fragment, null,
+            h('div', { className: 'acp-sub-h' }, '第 N 轮的平均输入 Token（上下文增长）'),
+            h('div', { className: 'acp-grow' }, ...grow.map((b) => h('div', { key: b.i, className: 'c', title: `第 ${b.label} 轮：平均输入 ${n0(Math.round(b.avgIn))} · 输出 ${n0(Math.round(b.avgOut))} · ${b.count} 轮` },
+              h('i', { style: { height: `${(b.avgIn / gmax) * 100}%` } })))),
+            h('div', { className: 'acp-grow-ax' }, ...grow.map((b) => h('span', { key: b.i }, b.label)))) : null,
+          h('div', { className: 'acp-note' }, '只统计带会话 ID 的轮次。'))
+          : h(Empty, { text: usage?.depth ? '所选范围内还没有会话' : '宿主还是旧版本：重启一次 DSH 后可用' }))
+    }
+
     /** Data-quality strip: replaces the old one-line estimated note. */
     function QualityStrip({ usage, modelOf = rawModelOf }) {
       const v = qualityView(usage)
@@ -2090,6 +2284,11 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = useState('')
       const [open, setOpenMap] = useState({})
       const [editor, setEditor] = useState(null)
+      // 「配置 CLI」 tag: the scan card stays folded until the user asks for it.
+      const [discOpen, setDiscOpen] = useState(false)
+      const [discSeen, setDiscSeen] = useState(typeof prefs0.discSeen === 'number' ? prefs0.discSeen : undefined)
+      const discRef = useRef(null)
+      const discScroll = useRef(false)
       const [toast, setToast] = useState('')
       const [auto, setAuto] = useState(true)
       const [recentN, setRecentN] = useState(15)
@@ -2172,6 +2371,35 @@ window.__ModuleLoader__.load({
       }
 
       const providers = data?.providers ?? []
+      // Scan card: folded by default (always shown while no provider exists). A quiet background
+      // scan, once per page load, feeds the tag's count; the guide animation invites a click the
+      // first time and whenever more CLIs can be added than when the card was last opened.
+      const disc = useStore(discStore)
+      const discFresh = (disc.res?.candidates ?? []).filter((c) => !c.configuredAs).length
+      const discShown = !lockSession && (discOpen || (!!data && providers.length === 0))
+      // Tag highlight: always on while the card is folded and something can be added (or the card
+      // was never opened). The hint bubble is the on-demand part: first time, or more CLIs than
+      // when the card was last opened / the bubble was dismissed.
+      const discGuide = !lockSession && !discShown && (discFresh > 0 || discSeen === undefined)
+      const knownIds = providers.map((p) => p.id).join(',')
+      useEffect(() => {
+        if (lockSession || !data) return
+        const s = discStore.get()
+        if (!s.res && !s.err && !s.loading) runDiscover({ known: knownIds, visible: false })
+      }, [!!data])
+      const toggleDisc = () => {
+        const next = !discOpen
+        setDiscOpen(next)
+        if (next) { setDiscSeen(discFresh); savePrefs({ discSeen: discFresh }); discScroll.current = true }
+      }
+      // The hint bubble stays up as long as the tag is highlighted (card folded, something to add);
+      // it waits for the background scan, so its count is real.
+      const discCoach = discGuide && !!disc.res && !disc.loading
+      useEffect(() => {
+        if (!discShown || !discScroll.current) return
+        discScroll.current = false
+        try { discRef.current?.scrollIntoView?.({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }) } catch {}
+      }, [discShown])
       // An older host sends no canSave; its routes would 404 anyway, so only an explicit false hides saving.
       const canSave = data?.canSave !== false
       const onSaved = (msg) => {
@@ -2281,6 +2509,23 @@ window.__ModuleLoader__.load({
               h('input', { type: 'date', className: 'acp-date', value: toStr, 'aria-label': '结束日期', onChange: (e) => setToStr(e.target.value) })) : null,
             h('button', { type: 'button', className: `acp-btn${compare ? ' on' : ''}`, disabled: !customValid && range === '0', title: '与上一个等长周期对比（KPI 环比 + 趋势图灰色虚线）', onClick: () => setCompare(!compare) }, '环比'),
             h('span', { className: 'acp-sp' }),
+            lockSession ? null : h('span', { className: 'acp-cfg-wrap' },
+              h('button', {
+                type: 'button', className: `acp-btn acp-cfg${discShown ? ' on' : ''}${discGuide ? ' guide' : ''}`, 'aria-expanded': String(discShown),
+                title: discGuide && discFresh ? `发现 ${discFresh} 个可接入的 CLI，点这里配置` : '扫描本机 ACP CLI，添加或编辑 provider',
+                onClick: toggleDisc,
+              },
+                h('svg', { viewBox: '0 0 24 24', width: 14, height: 14, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', 'aria-hidden': true },
+                  h('path', { d: 'M4 7h9M17 7h3M4 17h3M11 17h9' }), h('circle', { cx: 15, cy: 7, r: 2 }), h('circle', { cx: 9, cy: 17, r: 2 })),
+                '配置 CLI',
+                discFresh ? h('span', { className: 'n', title: `${discFresh} 个可添加` }, discFresh) : null),
+              discGuide ? h('span', { className: 'acp-guide', 'aria-hidden': true }) : null,
+              discCoach ? h('div', { className: 'acp-coach', role: 'status' },
+                h('button', { type: 'button', className: 'body', onClick: toggleDisc },
+                  h('span', { className: 'spark', 'aria-hidden': true }, '✦'),
+                  h('span', null,
+                    h('b', null, discFresh ? `发现 ${discFresh} 个可接入的 CLI` : '还没配置过本机 ACP CLI？'),
+                    h('small', null, discFresh ? '点这里查看，按推荐配置一键添加' : '点这里扫描本机，添加或编辑 provider')))) : null),
             h('button', { type: 'button', className: `acp-btn${compactMode ? ' on' : ''}`, title: '紧凑模式：更小的间距与字号', onClick: () => setCompactMode(!compactMode) }, '紧凑'),
             h('button', { type: 'button', className: 'acp-btn', title: '生成当前范围的 Markdown 用量报告', onClick: () => { setCopied(false); setReport(weeklyReport({ usage, prev: data?.prev, rangeLabel, modelOf, nameOf, filter, providers })) } }, '一键报告'),
             h('button', { type: 'button', className: `acp-btn${auto ? ' on' : ''}`, onClick: () => setAuto(!auto), title: '每 15 秒刷新一次' }, auto ? '● 自动刷新' : '○ 自动刷新'),
@@ -2351,9 +2596,16 @@ window.__ModuleLoader__.load({
             h(LatencyCard, { usage, colorOf, nameOf, modelOf, card: fold('latency') }),
             h(CacheCard, { usage, modelOf, card: fold('cache') }),
             h(CreditCard, { providers, byModel: usage.byModel, colorOf, nameOf, modelOf, card: fold('credit') }),
-            h(ThroughputCard, { usage, modelOf, card: fold('throughput') })),
+            h(ThroughputCard, { usage, modelOf, card: fold('throughput') }),
+            h(TpsCard, { query: filterQuery(), reloadKey: data.generatedAt, ttft: usage.ttft, modelOf, card: fold('tps') })),
 
-          lockSession ? null : h(DiscoverCard, { providers, autoScan: true, canSave, onEditor: setEditor }),
+          h('div', { className: 'acp-grid' },
+            h(DurationCard, { usage, colorOf, nameOf, card: fold('dur') }),
+            h(ProjectCard, { usage, card: fold('proj') }),
+            h(DepthCard, { usage, card: fold('depth') })),
+
+          discShown ? h('div', { ref: discRef, style: { scrollMarginTop: 12 } },
+            h(DiscoverCard, { providers, autoScan: true, canSave, onEditor: setEditor, onClose: providers.length ? () => setDiscOpen(false) : undefined })) : null,
           h('div', { className: 'acp-section' }, 'CLI / ACP 提供方', h('small', null, `${enabled} 个启用 · 「管理模型」里可以开关单个模型`)),
           h('div', { className: 'acp-provs' }, ...providers.map((p) => h(ProviderCard, {
             key: p.id, p, color: colorOf(p.id), usage, days, busy, act,
