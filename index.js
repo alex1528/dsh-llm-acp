@@ -32,8 +32,8 @@ export function apply(ctx, rawConfig) {
   // card can add the first provider without hand-written YAML.
   if (providers.size === 0) ctx.logger?.warn?.('llm-acp: no provider configured under `providers`; console only (scan to add one)')
 
-  // The CLI must work in the SAME directory as the teammate session that called it (a coder that
-  // edits files somewhere else is worse than useless). options.sessionId is the agent/session id;
+  // The CLI must work in the SAME directory as the session that called it (an agent that edits
+  // files somewhere else is worse than useless). options.sessionId is the agent/session id;
   // agents.get(id) is the live Agent, workingDirectory.ensure(agent) its validated cwd.
   const resolveCwd = async (sessionId, signal) => {
     let agent

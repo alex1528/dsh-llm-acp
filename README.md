@@ -17,7 +17,7 @@
 发布步骤：
 
 1. 把本仓库设为 **Public**（私有仓库不能做公开市场来源，索引 URL 必须匿名可访问）。
-2. 在目标 npm registry 上发布：`npm publish`（`package.json` 已经去掉 `private`，`files` 含 `docs/DETAIL.md`、`docs/preview.svg`、locale、icon、LICENSE）。
+2. 在目标 npm registry 上发布：`npm publish`（`package.json` 可发布——没有 `private` 字段，`files` 含 `docs/DETAIL.md`、`docs/preview.svg`、locale、icon、LICENSE）。
 3. 把 `docs/market-index.json` 放到一个稳定的 https URL，例如 `https://<用户名>.github.io/dsh-llm-acp/market-index.json`（可用 GitHub Pages）。每次发版：
    - 在 `versions` 里加一条新版本，按 SemVer 降序排；
    - 更新 `publishTimestamp`（Unix **秒**）；
@@ -53,7 +53,7 @@ pnpm add link:/绝对路径/dsh-llm-acp     # 路径必须是绝对路径
 
 ```bash
 # 发起方
-npm pack                       # 产出 dsh-llm-acp-<版本>.tgz，约 130 KB：index.js、client.js、lib/、locale/、icon、patch、README、LICENSE
+npm pack                       # 产出 dsh-llm-acp-<版本>.tgz，约 160 KB：index.js、client.js、lib/、locale/、icon、patch、README、LICENSE
 
 # 接收方
 cd ~/.dsh/profiles/<profile>
@@ -64,15 +64,11 @@ tgz 里**不含 `node_modules`**，`@agentclientprotocol/sdk` 和 `zod` 是插�
 
 **不要去 `node_modules/` 里手动拷目录**——那会绕过依赖安装，SDK 缺失时插件起不来。
 
-### 三、发布到 npm registry（适合长期多人用）
+### 三、从 npm registry 安装（适合长期多人用）
 
-现在的 `package.json` 里是 `"private": true`，npm 会拒绝发布。要发就：
+包已经发布到 npm：`dsh-llm-acp@0.2.0`。对方直接 `pnpm add dsh-llm-acp` 即可，`@agentclientprotocol/sdk` 和 `zod` 会作为插件自己的依赖装上；`@deepseek-ai/dsh-llm` 是可选 peer，由宿主提供。装完照上文「装完之后」添加 provider。
 
-1. 如果包名 `dsh-llm-acp` 在目标 registry 上被占用，改成带 scope 的（如 `@yourscope/dsh-llm-acp`）。
-2. 删掉 `"private": true`。
-3. 确认 `files[]` 已经覆盖运行时要用的文件——现有列表就是对的，`npm pack` 打出来 24 个文件。
-
-然后 `npm publish`，接收方 `pnpm add dsh-llm-acp` 即可。
+如果你是维护者要发新版本：先 `npm version <新版本>` 更新 `package.json` 的版本号，确认 `files[]` 覆盖运行时要用的文件（`npm pack --dry-run` 可核对，当前打出 28 个文件、约 160 KB），然后 `npm publish`。发布后记得按上文「上架到 DSH 插件市场」更新索引里的 `versions` 和 `publishTimestamp`。
 
 ### 装完之后（三种方式都一样）
 

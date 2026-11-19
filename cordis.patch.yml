@@ -5,7 +5,7 @@
 # The console writes the provider into YOUR profile patch, so no YAML has to be written by hand.
 #
 # Every key under `providers` becomes one LLM provider route served by the same adapter.
-# Use it in a role chain as `<provider>/<model>`, e.g. `kiro/gpt-5.6-terra`, or `kiro/default`
+# Reference a model as `<provider>/<model>`, e.g. `kiro/gpt-5.6-terra`, or `kiro/default`
 # to let the CLI pick its own configured model.
 #
 # Writing it by hand instead (in your profile's cordis.patch.yml; `config` there replaces this
