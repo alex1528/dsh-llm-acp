@@ -1,6 +1,7 @@
 {
   "meta": {
     "title": "ACP CLI 模型",
-    "description": "把本机的 ACP CLI 代理（CodeBuddy、DevEco、Qoder、Kiro 等）作为模型提供方使用。右侧栏「ACP 控制台」可查看每个 CLI 的状态、模型与 Token 用量，并控制哪些模型出现在模型列表里。"
+    "description": "把本机的 ACP CLI 代理（CodeBuddy、DevEco、Qoder、Kiro 等）作为模型提供方使用，团队角色可以拿到真正的子会话。左侧栏「ACP 洞察」或右侧栏「ACP 控制台」可扫描已安装的 CLI、一键添加、查看状态/模型/TPS/Token 用量，并控制哪些模型出现在模型列表里。扫描卡片收在带引导气泡的「配置 CLI」标签后；新接入的 provider 默认 permission: allow（每次单次批准，绝不永久批准）。至少需要装一个本地 ACP CLI，插件本身不提供模型。配置变更重载插件时，正在跑的一轮会以 DISPOSED 结束。",
+    "detail": "docs/DETAIL.zh.md"
   }
 }

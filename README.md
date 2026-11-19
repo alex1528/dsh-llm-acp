@@ -12,6 +12,25 @@
 
 `agent:kiro` 一次性委托这条路不受影响，两条路可以共存。
 
+## 上架到 DSH 插件市场（维护者）
+
+本插件的市场索引在 [docs/market-index.json](docs/market-index.json)，已经用 DSH 自带的 `parseMarketIndex` 验证过（format 1）。索引里的安装来源是 npm registry：`dsh-llm-acp@0.2.0`，所以用户装好后会收到「更新可用」提示，点更新就是 `pnpm add dsh-llm-acp@新版本`，不需要 Git 凭据。
+
+发布步骤：
+
+1. 把本仓库设为 **Public**（私有仓库不能做公开市场来源，索引 URL 必须匿名可访问）。
+2. 在目标 npm registry 上发布：`npm publish`（`package.json` 已经去掉 `private`，`files` 含 `docs/DETAIL.md`、`docs/preview.svg`、locale、icon、LICENSE）。
+3. 把 `docs/market-index.json` 放到一个稳定的 https URL，例如 `https://<用户名>.github.io/dsh-llm-acp/market-index.json`（可用 GitHub Pages）。每次发版：
+   - 在 `versions` 里加一条新版本，按 SemVer 降序排；
+   - 更新 `publishTimestamp`（Unix **秒**）；
+   - 保持 `engines.dsh` 与实际兼容范围一致；
+   - 用验证器跑一遍 `parseMarketIndex(JSON.parse(...), indexUrl)`。
+4. 用户把这个索引 URL 加到插件市场的索引列表（设置 → 插件市场，或调用 `pluginMarket.setIndexes`），就能在 Discover 里看到本插件。
+
+详情页面：插件页读 `locale/en.json` / `locale/zh.json` 里的 `meta.detail`（[DETAIL.md](docs/DETAIL.md)、[DETAIL.zh.md](docs/DETAIL.zh.md)），图片是同目录的 [preview.svg](docs/preview.svg)。没有启用 `meta.detail` 时会回退到本 README。图标是 [icon.svg](icon.svg)。
+
+> 自动升级说明：市场只对 **npm registry** 来源提供「更新可用 / 更新」；Git commit 来源只能在同一仓库同一目录内更新；本地 `link:` / tgz 装的版本不会自动升级，只能卸载重装。版本豁免不会随插件升级继承。
+
 ## 安装（给别人用）
 
 三种方式，按对方的场景选。**共同前提**：至少要装一个 ACP CLI（`kiro-cli acp`、`codebuddy --acp`、`opencode acp`、`pi-acp`、`@agentclientprotocol/claude-agent-acp`……），本插件自己不提供模型。

@@ -3,7 +3,6 @@
   "version": "0.2.0",
   "description": "Expose local ACP CLI agents (kiro-cli, codebuddy, …) as DeepSeek Harness LLM provider routes, so they can fill any Team role with a real child session",
   "license": "MIT",
-  "private": true,
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -20,10 +19,26 @@
     "locale/*.json",
     "icon.svg",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "docs/DETAIL.md",
+    "docs/preview.svg"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22",
+    "dsh": ">=0.2.1 <0.3.0-0"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "acp",
+    "agent-client-protocol",
+    "llm-provider"
+  ],
+  "homepage": "https://github.com/yingcaihuang/dsh-llm-acp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yingcaihuang/dsh-llm-acp.git"
   },
   "scripts": {
     "test": "node test/discover.mjs && node test/quota-probe.mjs && node test/dashboard-async.mjs && node test/errors-port.mjs && node test/backoff-port.mjs && node test/models-cache-port.mjs && node test/credits-port.mjs && node test/effort-port.mjs && node test/askuser-port.mjs && node test/usage-metrics.mjs"
