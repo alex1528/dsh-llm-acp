@@ -506,7 +506,7 @@ window.__ModuleLoader__.load({
     }
     // Entry switches (insights page / slash command) live in the same localStorage prefs; the
     // store lets apply()'s gates follow toggles without a reload.
-    const DEFAULT_ENTRIES = { page: true, slash: true }
+    const DEFAULT_ENTRIES = { page: true, slash: true, pickerColor: true }
     const mergeEntries = (e) => ({ ...DEFAULT_ENTRIES, ...(e || {}) })
     const entryStore = createStore(mergeEntries(loadPrefs().entries))
     const savePrefs = (p) => {
@@ -1290,7 +1290,7 @@ window.__ModuleLoader__.load({
     }
 
     // ── provider card ──
-    function ProviderCard({ p, color, usage, days, open, setOpen, busy, act, onEdit }) {
+    function ProviderCard({ p, color, usage, days, open, setOpen, busy, act, onEdit, onRemove }) {
       const [filter, setFilter] = useState('')
       const models = p.models ?? []
       const mName = (id) => models.find((m) => m.id === id)?.name ?? id
@@ -1348,7 +1348,8 @@ window.__ModuleLoader__.load({
         h('div', { className: 'acp-tools' },
           h('button', { type: 'button', className: `acp-btn${open ? ' on' : ''}`, onClick: () => setOpen(!open) }, open ? '收起模型' : `管理模型${p.models ? ` · ${models.length}` : ''}`),
           h('button', { type: 'button', className: 'acp-btn', disabled: busy !== '', onClick: () => act(`r:${p.id}`, () => post(R.refresh, { provider: p.id })) }, busy === `r:${p.id}` ? '读取中…' : '重新读取模型'),
-          onEdit ? h('button', { type: 'button', className: 'acp-btn', onClick: onEdit }, '编辑配置') : null),
+          onEdit ? h('button', { type: 'button', className: 'acp-btn', onClick: onEdit }, '编辑配置') : null,
+          onRemove ? h('button', { type: 'button', className: 'acp-btn danger', disabled: busy !== '', title: '从插件配置里删除这个渠道（停用只是暂时关掉，删除后卡片和模型列表里都不再出现）', onClick: onRemove }, busy === `x:${p.id}` ? '删除中…' : '删除') : null),
         open ? h('div', { style: { marginTop: 10 } },
           h('div', { className: 'acp-tools', style: { marginTop: 0, marginBottom: 8 } },
             h('input', { className: 'acp-input', type: 'search', placeholder: '搜索模型名或 ID…', value: filter, onChange: (e) => setFilter(e.target.value) }),
@@ -2407,6 +2408,18 @@ window.__ModuleLoader__.load({
         setTimeout(() => setToast(''), 3500)
         act('saved', () => sleep(1800)) // the plugin restarts with the new config before the reload
       }
+      // Card-level delete: same route as the editor's 删除 button (removes the provider from the
+      // plugin config; the plugin then restarts), so a disabled provider can actually go away.
+      const removeProv = (p) => {
+        const nm = short(p.displayName) || p.id
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(`从配置里删除「${nm}」（${p.id}）？\n\n删除后它不再出现在控制台和模型列表里；已有会话里引用 ${p.id}/<model> 的地方会报错。以后可以在「本机 ACP CLI」里重新添加。`)) return
+        act(`x:${p.id}`, async () => {
+          await post(R.remove, { id: p.id })
+          setToast(`已删除 ${nm}，插件正在重载`)
+          setTimeout(() => setToast(''), 3500)
+          await sleep(1800) // let the plugin restart before the reload
+        })
+      }
       const usage = data?.usage ?? { total: {}, byProvider: [], byModel: [], byDay: [], errors: [], recent: [], hours: [], latency: {} }
       const t = usage.total ?? {}
       const days = usage.byDay ?? []
@@ -2537,7 +2550,9 @@ window.__ModuleLoader__.load({
           h('label', { title: '在左侧一级侧边栏显示「ACP 洞察」页' },
             h('input', { type: 'checkbox', checked: !!entries.page, onChange: () => savePrefs({ entries: { ...entries, page: !entries.page } }) }), '侧边栏洞察页'),
           h('label', { title: '在输入框注册 /acp 命令，弹出本会话用量' },
-            h('input', { type: 'checkbox', checked: !!entries.slash, onChange: () => savePrefs({ entries: { ...entries, slash: !entries.slash } }) }), '/acp 命令')) : null,
+            h('input', { type: 'checkbox', checked: !!entries.slash, onChange: () => savePrefs({ entries: { ...entries, slash: !entries.slash } }) }), '/acp 命令'),
+          h('label', { title: '输入框的模型选择列表里，每个渠道用不同颜色区分，渠道名放大加粗（对所有渠道生效，不只 ACP）' },
+            h('input', { type: 'checkbox', checked: !!entries.pickerColor, onChange: () => savePrefs({ entries: { ...entries, pickerColor: !entries.pickerColor } }) }), '模型列表按渠道着色')) : null,
         hostStale ? h('div', { className: 'acp-alert', style: { borderColor: 'color-mix(in srgb,var(--acp-warn) 45%,transparent)', background: 'color-mix(in srgb,var(--acp-warn) 6%,var(--acp-card))', color: 'var(--acp-warn)' } },
           '自定义区间 / 交叉筛选 / 环比需要更新后的宿主：请重启一次 DSH 生效。当前展示的是未应用这些选项的数据。') : null,
         err ? h('div', { className: 'acp-alert', role: 'alert' }, err, data ? null : h('div', { className: 'acp-note' }, '确认插件已加载最新版并重启过 DSH；接口 /api/llm-acp.dashboard 由宿主半侧注册。')) : null,
@@ -2610,6 +2625,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'acp-provs' }, ...providers.map((p) => h(ProviderCard, {
             key: p.id, p, color: colorOf(p.id), usage, days, busy, act,
             onEdit: canSave && !lockSession ? () => setEditor({ mode: 'edit', id: p.id, spec: editSpecOf(p), title: short(p.displayName), efforts: p.runtime?.efforts }) : undefined,
+            onRemove: canSave && !lockSession ? () => removeProv(p) : undefined,
             open: open[p.id] === true, setOpen: (v) => setOpenMap((o) => ({ ...o, [p.id]: v })),
           }))),
 
@@ -2780,6 +2796,65 @@ window.__ModuleLoader__.load({
       return () => { unsub(); off() }
     }
 
+    // ── model picker tint: colour every provider group in DSH's composer model list ──────────
+    // DSH's ModelSelect renders each provider as <section data-menu-group> with a
+    // [data-menu-group-heading] and wraps every model label in <span data-provider-id data-model-id>.
+    // We only add attributes + a CSS variable to those nodes (no component replacement, and the
+    // single-owner `conversation.input.model.label` slot stays free for other plugins).
+    const PICK_PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#84cc16', '#f43f5e', '#14b8a6', '#f97316', '#a855f7', '#06b6d4']
+    const PICK_KEY = 'dsh-llm-acp.pickerColors.v1'
+    let pickMap = null
+    /** Stable, collision-free colour per provider id: first-seen order, persisted in localStorage. */
+    function pickColorOf(id) {
+      if (!pickMap) { try { pickMap = (typeof localStorage !== 'undefined' && JSON.parse(localStorage.getItem(PICK_KEY))) || {} } catch { pickMap = {} } }
+      if (!Object.prototype.hasOwnProperty.call(pickMap, id)) {
+        const used = new Set(Object.values(pickMap))
+        let i = 0
+        while (used.has(i) && i < PICK_PALETTE.length) i++
+        pickMap[id] = i < PICK_PALETTE.length ? i : Object.keys(pickMap).length % PICK_PALETTE.length
+        try { localStorage.setItem(PICK_KEY, JSON.stringify(pickMap)) } catch { /* storage unavailable */ }
+      }
+      return PICK_PALETTE[num(pickMap[id]) % PICK_PALETTE.length]
+    }
+    const PICK_CSS = `
+section[data-menu-group][data-acp-pc]>[data-menu-group-heading]{font-size:15px;line-height:22px;font-weight:700;letter-spacing:.01em;color:color-mix(in srgb,var(--acp-pc) 80%,var(--dsw-alias-label-primary,#1f2328))}
+section[data-menu-group][data-acp-pc]>[data-menu-group-heading]::before{content:"";display:inline-block;width:4px;height:16px;border-radius:2px;margin-right:7px;vertical-align:-3px;background:var(--acp-pc)}
+span[data-provider-id][data-model-id][data-acp-pc]::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--acp-pc)}
+section[data-menu-group][data-acp-pc] button[role="menuitemradio"][data-highlighted]:not(:disabled){background:color-mix(in srgb,var(--acp-pc) 12%,transparent)}
+`
+    function paintPicker(root) {
+      const mark = (el, c) => { if (el.getAttribute('data-acp-pc') !== c) { el.setAttribute('data-acp-pc', c); el.style.setProperty('--acp-pc', c) } }
+      // Sections first, in menu order, so first-seen colours follow the picker's provider order.
+      for (const sec of root.querySelectorAll('section[data-menu-group]')) {
+        const lab = sec.querySelector('[data-provider-id][data-model-id]')
+        if (lab) mark(sec, pickColorOf(lab.getAttribute('data-provider-id')))
+      }
+      for (const el of root.querySelectorAll('span[data-provider-id][data-model-id]')) mark(el, pickColorOf(el.getAttribute('data-provider-id')))
+    }
+    /** Install the tint (style + observer); returns its disposer. */
+    function installPickerTint() {
+      if (typeof document === 'undefined' || !document.body || typeof MutationObserver === 'undefined') return () => {}
+      const st = document.createElement('style')
+      st.setAttribute('data-llm-acp', 'picker-tint')
+      st.textContent = PICK_CSS
+      document.head.appendChild(st)
+      let raf = 0
+      const run = () => { raf = 0; try { paintPicker(document.body) } catch { /* ignore */ } }
+      const mo = new MutationObserver((recs) => {
+        if (raf) return
+        if (!recs.some((r) => r.type === 'attributes' || r.addedNodes.length > 0)) return
+        raf = requestAnimationFrame(run)
+      })
+      mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-provider-id'] })
+      run()
+      return () => {
+        mo.disconnect()
+        if (raf) cancelAnimationFrame(raf)
+        st.remove()
+        for (const el of document.querySelectorAll('[data-acp-pc]')) { el.removeAttribute('data-acp-pc'); el.style.removeProperty('--acp-pc') }
+      }
+    }
+
     function InsightsPage() { return h(Console, { mode: 'page' }) }
     function PanelListIcon(props) {
       const size = typeof props?.size === 'number' ? props.size : 18
@@ -2848,6 +2923,8 @@ window.__ModuleLoader__.load({
           out.push(() => { const open = modalStore.get(); if (open) { modalStore.set(''); consumeSlash(open) } })
           return out
         }), 'llm-acp: /acp')
+        // ③ colour provider groups in the composer's model picker (all providers)
+        ctx.effect(() => gate((e) => e.pickerColor, () => [installPickerTint()]), 'llm-acp: picker tint')
         try {
           ctx.effect(() => ctx.sidebarRightTabs.register({
             id: TAB_ID,

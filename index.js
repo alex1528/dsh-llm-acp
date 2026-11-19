@@ -118,6 +118,12 @@ export function apply(ctx, rawConfig) {
     await editor.edit(entry, (current) => change(current))
   }
   const rawProviders = rawConfig?.providers && typeof rawConfig.providers === 'object' ? rawConfig.providers : {}
-  registerDashboardRoutes(ctx, { adapter, providers, prefs, usage, stateFile, saveConfig, rawProviders })
+  // Tell the host (and through it every open model picker) that a provider's advertised models
+  // changed, so a console switch or delete shows up at once instead of after the picker's cache
+  // expires. Same event DSH's own DeepSeek adapter emits.
+  const notifyModels = (id) => {
+    try { ctx.emit('llm/models-updated', id) } catch (e) { log.warn(e, { msg: 'llm-acp: models-updated emit failed' }) }
+  }
+  registerDashboardRoutes(ctx, { adapter, providers, prefs, usage, stateFile, saveConfig, rawProviders, notifyModels })
   ctx.logger?.info?.(`llm-acp: registered ${[...providers.keys()].join(', ') || '(no provider)'}`)
 }
