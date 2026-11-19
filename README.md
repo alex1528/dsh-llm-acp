@@ -2,15 +2,13 @@
 
 把本地 **ACP CLI agent**（kiro-cli、codebuddy、opencode、Codex/Claude Code 的 ACP 适配器……）接成 DeepSeek Harness 的 **LLM provider**。
 
-接上之后，角色链里写 `kiro/gpt-5.6-terra` 就是一个普通模型，所以：
+添加 provider 后，这个 CLI 的模型会出现在 DSH 的模型选择器里，引用写作 `<provider>/<model>`（例如 `kiro/gpt-5.6-terra`），像其它模型一样选用。插件本身提供的是**模型路由**和**用量控制台**：
 
-- ✅ 有子会话，团队弹窗里看得到
-- ✅ 能 `send_message`，有运行状态
-- ✅ 能当 coder / tester / reviewer 等任意角色
-- ✅ **dsh-enhanced-agent-team 一行都不用改**
-- ✅ 自带用量控制台：右侧栏「ACP 控制台」、一级页「ACP 洞察」、输入框 `/acp`（见下文「界面」一节）
+- 左侧栏「ACP 洞察」一级页、右侧栏「ACP 控制台」标签、输入框 `/acp` 三种入口，查看各 CLI 的状态、模型、Token 用量与 TPS
+- 顶部「配置 CLI」标签扫描本机已安装的 CLI，检测握手后一键添加或编辑，不用手写 YAML
+- 复用 CLI 进程和它自己的原生会话，省掉每轮冷启动
 
-`agent:kiro` 一次性委托这条路不受影响，两条路可以共存。
+**前提**：本机至少要装一个 ACP CLI（`kiro-cli acp`、`codebuddy --acp`、`opencode acp`、`pi-acp`、`@agentclientprotocol/claude-agent-acp`……），插件自己不提供模型。它不替代 DSH 自己的 Agent / Team 机制，也不给 CLI 增加宿主的工具。
 
 ## 上架到 DSH 插件市场（维护者）
 
@@ -110,7 +108,7 @@ tgz 里**不含 `node_modules`**，`@agentclientprotocol/sdk` 和 `zod` 是插�
 ### 对方自检
 
 ```bash
-npm test                    # 离线 25 项，不花 token、不需要 CLI
+npm test                    # 离线 248 项，不花 token、不需要 CLI
 ```
 
 exit 0 才算装对了。
@@ -157,7 +155,7 @@ CLI 不是每次都要配置，所以 **本机 ACP CLI** 卡片默认收起。AC
   name: dsh-llm-acp
   config:
     providers:
-      kiro:                                   # ← provider 名，角色链里写 kiro/<model>
+      kiro:                                   # ← provider 名，模型引用写 kiro/<model>
         displayName: Kiro
         command: /Users/you/.local/bin/kiro-cli  # 建议绝对路径；裸名走 DSH 进程的 PATH，从 Dock 启动可能找不到（ACP_SPAWN）
         args: [acp]
@@ -231,7 +229,7 @@ CLI 不是每次都要配置，所以 **本机 ACP CLI** 卡片默认收起。AC
 | `maxRetries` | 0 | **默认不重试**：CLI agent 有副作用，重放一轮可能把文件改两遍 |
 | `startupRetries` | 1 | **只**在启动阶段（尚未发 prompt、无副作用）失败时重试 0–3 次 |
 | `reuseSessions` | true | 同一个人会话复用同一个 CLI 进程，省掉每次 ~3.2s 冷启动；设 false 退回每次新进程 |
-| `sessionIdleMs` | 1800000 | 热会话空闲多久后回收（30 分钟：成员等 Lead 回复时不丢 CLI 自己的上下文） |
+| `sessionIdleMs` | 1800000 | 热会话空闲多久后回收（30 分钟：同一会话里隔一会儿再提问也不丢 CLI 自己的上下文） |
 | `maxSessions` | 8 | 每个 provider 最多同时保持几个热会话（LRU）。**成员数超过它就会抖动**：每轮都要回收一个别人正想用的热会话，等于每轮都冷启动；发生回收时会打一条 `cache/evict` 警告，看到它就调大这个值 |
 | `modelDiscoveryBackoffMs` | 60000 | 模型发现失败后的退避窗口（窗口内不再重启 CLI）；整数 ≥ 0，0 表示不退避 |
 | `promptRetries` | 1 | 仅当本轮**还没产出任何文本**且失败属限流/服务端/超时/传输时才重试；已产出绝不重放。0–3 |
@@ -344,7 +342,7 @@ KPI 下方是**估算条**：CLI 没回报 token 的轮次按「字符数 ÷ 4�
 每个 provider 一张卡：运行状态（正常 / 有失败 / 异常 / 读取中 / 已停用）、CLI 版本、轮次 / Token / 成功率 / 平均耗时、可用模型进度条。
 
 - 右上**开关**：启用 / 停用整个 provider。
-- **管理模型**：展开模型表，逐个开关模型；列有「写法」（`provider/model`，角色链里就这么写）、「倍率」、「轮次」、「Token」、「最近使用」。批量按钮：**全部启用**、**全部停用（保留默认）**、**停用 ≥1x 高倍率**。停用的模型不出现在模型选择器里；角色链仍写着它时这一轮报 `ACP_MODEL_DISABLED`。**开关立即生效，不用重启**。CLI 已不再提供但仍被停用的模型会列出来，可一键恢复。
+- **管理模型**：展开模型表，逐个开关模型；列有「写法」（`provider/model`，模型引用就这么写）、「倍率」、「轮次」、「Token」、「最近使用」。批量按钮：**全部启用**、**全部停用（保留默认）**、**停用 ≥1x 高倍率**。停用的模型不出现在模型选择器里；仍被引用时这一轮报 `ACP_MODEL_DISABLED`。**开关立即生效，不用重启**。CLI 已不再提供但仍被停用的模型会列出来，可一键恢复。
 - **重新读取模型**：立即重新发现该 CLI 的模型目录（否则按 `modelCacheMs` 缓存）。
 - **配置详情**：展开看该 provider 的生效配置。
 
@@ -473,7 +471,7 @@ claude:
 
 ## ⚠️ 已知局限（设计上就有的，不是 bug）
 
-1. **CLI 用不了宿主的工具**，只能用它自己的。它看不到 team_task_*、send_message 这些。所以它能当团队成员，但**不会自己领任务、不会给 Lead 发消息**，Lead 要把任务直接写进 prompt。
+1. **CLI 用不了宿主的工具**，只能用它自己带的工具。任务指令要直接写在发给它的 prompt 里；它不会去读取宿主的会话/任务机制。它拿到的是由宿主投影后的一段文本（以及新增消息里的图片），上下文边界见下面第 2 条。
 2. **第一次（或接不回时）历史是拼成一段文本给它的**，不是真正的多轮对话：以前的工具调用和结果都变成纯文本。之后热会话或 `session/load` 接回原生会话，就只发新增部分。CLI 不支持 `loadSession`、或宿主历史被压缩/改写时，仍会退回整段 transcript。
 3. **冷启动成本**：kiro 启动约 3.2 秒，**复用后只付一次**。但模型本身偶发很慢（见过单轮 80 秒），所以整体时长波动大。
 4. **token 用量**：CLI 回报就透传真实值（kiro 会报），不回报才退回按字符数 ÷ 4 估算。
@@ -485,10 +483,10 @@ claude:
 ## 测试
 
 ```bash
-npm test   # 离线，不花 token、不需要 CLI：
-           #   test/discover.mjs        扫描 / 检测 / 添加（假可执行文件 + 假 ACP 程序）
-           #   test/quota-probe.mjs     用量探测输出解析
-           #   test/dashboard-async.mjs 洞察页先返回、慢项后台补全
+npm test   # 离线 248 项，不花 token、不需要 CLI，依次跑：
+           #   discover / quota-probe / dashboard-async
+           #   errors-port / backoff-port / models-cache-port
+           #   credits-port / effort-port / askuser-port / usage-metrics
 ```
 
 ### 重新生成截图

@@ -19,8 +19,8 @@
       "name": "dsh-llm-acp",
       "title": { "en": "ACP CLI models", "zh": "ACP CLI 模型" },
       "description": {
-        "en": "Use local ACP CLI agents (CodeBuddy, DevEco, Qoder, Kiro and others) as model providers, so a Team role can fill with a real child session. Includes the ACP console for status, models, TPS, token usage and one-click CLI setup.",
-        "zh": "把本机的 ACP CLI 代理（CodeBuddy、DevEco、Qoder、Kiro 等）作为模型提供方使用，团队角色可以拿到真正的子会话。自带 ACP 控制台，可查看状态、模型、TPS、Token 用量，并一键接入本机 CLI。"
+        "en": "Use local ACP CLI agents (CodeBuddy, DevEco, Qoder, Kiro and others) as model providers; their models appear in the picker as <provider>/<model>. Includes the ACP console for status, models, TPS, token usage and one-click CLI setup.",
+        "zh": "把本机的 ACP CLI 代理（CodeBuddy、DevEco、Qoder、Kiro 等）作为模型提供方使用，它们的模型以 <provider>/<model> 出现在模型选择器里。自带 ACP 控制台，可查看状态、模型、TPS、Token 用量，并一键接入本机 CLI。"
       },
       "icon": "https://raw.githubusercontent.com/yingcaihuang/dsh-llm-acp/main/icon.svg",
       "author": "yingcaihuang",

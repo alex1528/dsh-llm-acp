@@ -1078,7 +1078,7 @@ window.__ModuleLoader__.load({
         catch (e) { setErr(String(e?.message ?? e)); setSaving(false) }
       }
       const remove = async () => {
-        if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(`从配置里删除 provider「${f.id}」？角色链里还写着它的成员会报错。`)) return
+        if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(`从配置里删除 provider「${f.id}」？还有模型引用写 ${f.id}/<model>，删除后这些引用会报错。`)) return
         setSaving(true); setErr('')
         try { await post(R.remove, { id: f.id }); onSaved(`已删除 ${f.id}，插件正在重载`) }
         catch (e) { setErr(String(e?.message ?? e)); setSaving(false) }
@@ -1105,14 +1105,14 @@ window.__ModuleLoader__.load({
             sec('基础', null,
               h('div', { className: 'acp-ed-grid' },
                 h(Field, { label: '显示名', hint: '模型选择器里显示的名字' }, inp('displayName', { placeholder: name || 'Kiro' })),
-                h(Field, { label: 'provider 名', error: errOf('id', f.id), hint: editing ? '已接入的 provider 不能改名' : `角色链写法：${route}/<model>` },
+                h(Field, { label: 'provider 名', error: errOf('id', f.id), hint: editing ? '已接入的 provider 不能改名' : `模型引用写法：${route}/<model>` },
                   inp('id', { placeholder: 'kiro', disabled: editing })),
                 h(Field, { label: '可执行文件', full: true, error: errOf('command', f.command), hint: '绝对路径；扫描结果已自动填好' },
                   inp('command', { placeholder: '/Users/you/.local/bin/kiro-cli', className: 'mono' })),
                 h(Field, { label: 'ACP 参数', hint: '进入 ACP 模式的参数，空格分隔' }, inp('args', { placeholder: 'acp', className: 'mono' })),
                 h(Field, { label: '选模型方式', hint: f.modelVia === 'configOption' ? '建好会话后用 ACP 配置项切换模型' : '启动时把模型拼进命令行' },
                   h('div', { className: 'acp-seg full' }, ...VIA_OPTS.map(([v, l]) => h('button', { key: v, type: 'button', className: f.modelVia === v ? 'on' : '', onClick: () => { setViaTouched(true); set({ modelVia: v }) } }, l)))),
-                f.modelVia === 'args' ? h(Field, { label: '模型参数模板', full: true, hint: '{model} 会被替换成角色链里的模型；<provider>/default 时不传' },
+                f.modelVia === 'args' ? h(Field, { label: '模型参数模板', full: true, hint: '{model} 会被替换成模型引用里的模型；<provider>/default 时不传' },
                   inp('modelArgs', { placeholder: '--model {model}', className: 'mono' })) : null)),
 
             sec('权限', '这个 CLI 能不能改文件、跑命令',
@@ -1369,7 +1369,7 @@ window.__ModuleLoader__.load({
                 h('td', null, u ? ago(u.lastAt) : '-'))
             })))),
           (p.staleDisabled ?? []).length ? h('div', { className: 'acp-note' }, '已停用但 CLI 已不再提供：', ...p.staleDisabled.map((id) => h('button', { key: id, type: 'button', className: 'acp-btn', style: { marginLeft: 6 }, disabled: busy !== '', onClick: () => setModels([id], false) }, `恢复 ${id}`))) : null,
-          h('div', { className: 'acp-note' }, '停用的模型不出现在模型选择器里；角色链里仍写着它时这一轮会报 ACP_MODEL_DISABLED。开关立即生效，不需要重启。')) : null)
+          h('div', { className: 'acp-note' }, '停用的模型不出现在模型选择器里；仍被引用时这一轮会报 ACP_MODEL_DISABLED。开关立即生效，不需要重启。')) : null)
     }
 
     // ── per-session statistics (in-progress row → inline detail) ──

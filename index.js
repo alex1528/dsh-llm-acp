@@ -1,8 +1,8 @@
 // dsh-llm-acp — expose local ACP CLI agents (kiro-cli, codebuddy, …) as LLM provider routes.
 //
-// Each configured CLI becomes a provider route, so a role chain item such as
-// `kiro/gpt-5.6-terra` resolves as a normal model: the teammate gets a real child session, shows
-// up in the Team, and can receive send_message — the gaps of the one-shot `agent:` path.
+// Each configured CLI becomes a provider route, so a model reference such as
+// `kiro/gpt-5.6-terra` resolves like any other model in the model picker. The plugin supplies the
+// model route and a usage console; it does not change DSH's own agent or team mechanisms.
 //
 // Turns reuse a warm CLI per host session, and reopen the CLI's own session (ACP session/load)
 // after a reap or a DSH restart; see README for the limits.

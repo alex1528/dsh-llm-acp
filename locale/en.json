@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "ACP CLI models",
-    "description": "Use local ACP CLI agents (CodeBuddy, DevEco, Qoder, Kiro and others) as model providers, so a Team role can fill with a real child session. Open ACP 洞察 from the left sidebar or the ACP 控制台 tab in the right sidebar to scan installed CLIs, add one with a click, inspect status, models, TPS and token usage, and choose which models appear in the picker. The scan card is folded behind a 配置 CLI tag with a guide bubble; a provider starts with permission: allow (single approval, never always). Requires at least one local ACP CLI; the plugin itself provides no model. A turn that is already running ends with DISPOSED when the plugin reloads after a config change.",
+    "description": "Use local ACP CLI agents (CodeBuddy, DevEco, Qoder, Kiro and others) as model providers; their models appear in the model picker as <provider>/<model>. Open ACP 洞察 from the left sidebar or the ACP 控制台 tab in the right sidebar to scan installed CLIs, add one with a click, inspect status, models, TPS and token usage, and choose which models appear in the picker. The scan card is folded behind a 配置 CLI tag with a guide bubble; a provider starts with permission: allow (single approval, never always). Requires at least one local ACP CLI; the plugin itself provides no model and does not change DSH's agent or team mechanisms. A turn that is already running ends with DISPOSED when the plugin reloads after a config change.",
     "detail": "docs/DETAIL.md"
   }
 }

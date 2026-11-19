@@ -1,7 +1,7 @@
 {
   "name": "dsh-llm-acp",
   "version": "0.2.0",
-  "description": "Expose local ACP CLI agents (kiro-cli, codebuddy, …) as DeepSeek Harness LLM provider routes, so they can fill any Team role with a real child session",
+  "description": "Expose local ACP CLI agents (kiro-cli, codebuddy, …) as DeepSeek Harness LLM provider routes, with a usage console and one-click CLI setup",
   "license": "MIT",
   "type": "module",
   "main": "index.js",
